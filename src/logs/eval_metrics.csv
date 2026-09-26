@@ -1,0 +1,2 @@
+checkpoint,config,n,bert_f1,bert_p,bert_r,rouge_l,bleu_4,mean_word_count,mean_rep_rate,pct_short,acts_bert_f1,high_bert_f1,supreme_bert_f1,tribunal_bert_f1
+../checkpoints/decoder_base/ckpt_best.pt,T0.8_p0.95_k0_rp1.1_eosoff,200,0.82943,0.827,0.83202,0.20204,0.04336,127.9,0.9941,2.5,0.8282,0.83051,0.82858,0.83044
