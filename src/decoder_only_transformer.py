@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from dataclasses import dataclass
+from doc_mask import build_document_mask
 
 
 @dataclass
@@ -14,6 +15,8 @@ class ModelConfig:
     d_model: int = 768
     dropout: float = 0.0
     bias: bool = False
+    doc_mask: bool = False
+    eos_id: int = 0
 
 
 class RMSNorm(nn.Module):
@@ -77,12 +80,17 @@ class CausalSelfAttention(nn.Module):
         keep = self.causal_mask[:, :, T_total - T_new:T_total, :T_total]
 
         if attn_mask is not None:
-            pad = attn_mask.bool()                       # (B, T_prompt)
-            if pad.size(1) < T_total:                    # extend over generated tokens
-                extra = torch.ones(B, T_total - pad.size(1),
-                                   dtype=torch.bool, device=pad.device)
-                pad = torch.cat([pad, extra], dim=1)
-            keep = keep & pad.view(B, 1, 1, T_total)
+            if attn_mask.dim() == 2:                     # (B, T) padding mask
+                pad = attn_mask.bool()
+                if pad.size(1) < T_total:                # extend over cached tokens
+                    extra = torch.ones(B, T_total - pad.size(1),
+                                       dtype=torch.bool, device=pad.device)
+                    pad = torch.cat([pad, extra], dim=1)
+                keep = keep & pad.view(B, 1, 1, T_total)
+            elif attn_mask.dim() == 4:                   # (B, 1, T, T) document mask
+                keep = keep & attn_mask
+            else:
+                raise ValueError(f"attn_mask must be 2D or 4D, got {attn_mask.dim()}D")
 
         if self.use_flash and not force_manual:
             if attn_mask is None and T_new == T_total:
@@ -185,6 +193,9 @@ class GPT(nn.Module):
         offset = 0 if past_caches is None else past_caches[0][0].size(2)
         assert offset + t <= self.config.block_size, \
             f"position {offset + t} exceeds block_size {self.config.block_size}"
+
+        if self.config.doc_mask and past_caches is None:
+            attn_mask = build_document_mask(idx, self.config.eos_id, pad_mask=attn_mask)
 
         pos = torch.arange(offset, offset + t, dtype=torch.long, device=idx.device)
         x = self.transformer.tok_emb(idx) + self.transformer.pos_emb(pos)

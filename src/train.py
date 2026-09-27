@@ -5,6 +5,7 @@ import time
 import argparse
 import numpy as np
 import torch
+import torch.nn.functional as F
 from contextlib import nullcontext
 from decoder_only_transformer import GPT, ModelConfig
 
@@ -85,7 +86,15 @@ def get_lr(step, warmup, max_steps, max_lr, min_lr):
 
 
 @torch.no_grad()
-def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device):
+def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
+                  block_size):
+    """
+    Returns aggregate and per-source losses, plus loss as a function of
+    position within the block (length block_size, averaged over batch and
+    iterations). The per-position vector is what tests prediction P2:
+    cross-document contamination should worsen with accumulated context,
+    so any benefit from masking should grow at later positions.
+    """
     model.eval()
     out = {}
 
@@ -97,20 +106,37 @@ def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device):
         losses[k] = loss.item()
     out["train"] = losses.mean().item()
 
-    dl.eval_rng.manual_seed(1337)          # same windows every eval
+    dl.eval_rng.manual_seed(1337)          # same windows at every eval
     out["val_sources"] = {}
+    out["pos_loss_sources"] = {}
     total = 0.0
+    pos_total = torch.zeros(block_size, dtype=torch.float64)
+
     for src in dl.sources:
         ls = torch.zeros(val_iters)
+        pos_sum = torch.zeros(block_size, dtype=torch.float64)
+
         for k in range(val_iters):
             X, Y = dl.get_batch("val", batch_size, device, source=src)
             with ctx:
-                _, loss = model(X, targets=Y)
-            ls[k] = loss.item()
+                logits, _ = model(X)
+                per_tok = F.cross_entropy(
+                    logits.view(-1, logits.size(-1)).float(),
+                    Y.reshape(-1),
+                    reduction="none",
+                ).view(Y.shape)                       # (B, T)
+
+            ls[k] = per_tok.mean().item()
+            pos_sum += per_tok.mean(dim=0).double().cpu()   # (T,)
+
         m = ls.mean().item()
         out["val_sources"][src] = m
+        out["pos_loss_sources"][src] = (pos_sum / val_iters).numpy()
         total += m * dl.weights[src]
+        pos_total += (pos_sum / val_iters) * dl.weights[src]
+
     out["val_total"] = total
+    out["pos_loss"] = pos_total.numpy()
 
     model.train()
     return out
@@ -138,6 +164,7 @@ def train():
     p.add_argument("--n_head", type=int, default=12)
     p.add_argument("--d_model", type=int, default=768)
     p.add_argument("--dropout", type=float, default=0.0)
+    p.add_argument("--seed", type = int, default=1899)
 
     p.add_argument("--batch_size", type=int, default=16)
     p.add_argument("--grad_accum_steps", type=int, default=32)
@@ -156,7 +183,11 @@ def train():
     p.add_argument("--peak_tflops", type=float, default=150.0)
     p.add_argument("--compile", action="store_true")
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--doc_mask", action="store_true", help="mask attention across document boundaries")
     args = p.parse_args()
+
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -175,7 +206,7 @@ def train():
 
     config = ModelConfig(block_size=args.block_size, n_layer=args.n_layer,
                          n_head=args.n_head, d_model=args.d_model,
-                         dropout=args.dropout)
+                         dropout=args.dropout, doc_mask = args.doc_mask, eos_id=0)
     model = GPT(config)
     print(f"model: {sum(q.numel() for q in model.parameters()):,} params")
 
@@ -232,7 +263,15 @@ def train():
 
         if step % args.eval_interval == 0 or step == args.max_steps:
             L = estimate_loss(model, dl, args.batch_size, args.eval_train_iters,
-                              args.eval_val_iters, ctx, device)
+                              args.eval_val_iters, ctx, device, args.block_size)
+
+            np.savez_compressed(
+                os.path.join(run_dir, f"pos_loss_{step:06d}.npz"),
+                step=step,
+                overall=L["pos_loss"],
+                **{f"src_{s}": v for s, v in L["pos_loss_sources"].items()},
+            )
+            
             row = {f: "" for f in CSV_FIELDS}
             row.update({
                 "step": step, "tokens_seen": tokens_seen,

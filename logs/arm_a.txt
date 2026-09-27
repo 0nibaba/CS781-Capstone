@@ -1,0 +1,83 @@
+data sources:
+  acts      141,839,507 tokens  (train 136,839,507 / val 5,000,000)
+  high      1,497,303,564 tokens  (train 1,492,303,564 / val 5,000,000)
+  supreme   252,591,591 tokens  (train 247,591,591 / val 5,000,000)
+  tribunal  1,616,880,704 tokens  (train 1,611,880,704 / val 5,000,000)
+mixture: {'acts': 0.04, 'high': 0.427, 'supreme': 0.072, 'tribunal': 0.461}
+
+model: 110,316,288 params
+resuming from /data1/yashy26/checkpoints/arm_a_baseline/ckpt_latest.pt
+tokens/step: 262,144  -> 1.49B over 5700 steps
+
+EVAL step   2750 | train 1.9775 | val 1.9042 | acts:2.345  high:1.972  supreme:2.652  tribunal:1.686
+step   2750 | loss 1.8585 | norm 0.25 | lr 4.35e-04 | 74.48s | 3,519 tok/s | MFU 1.6%
+step   2800 | loss 1.8761 | norm 0.25 | lr 4.27e-04 | 4.16s | 62,979 tok/s | MFU 27.8%
+step   2850 | loss 1.8328 | norm 0.27 | lr 4.19e-04 | 4.01s | 65,338 tok/s | MFU 28.8%
+step   2900 | loss 2.1025 | norm 0.26 | lr 4.10e-04 | 4.05s | 64,655 tok/s | MFU 28.5%
+step   2950 | loss 1.9523 | norm 0.27 | lr 4.01e-04 | 4.03s | 65,100 tok/s | MFU 28.7%
+EVAL step   3000 | train 1.9248 | val 1.8715 | acts:2.308  high:1.945  supreme:2.621  tribunal:1.648
+step   3000 | loss 2.0064 | norm 0.25 | lr 3.93e-04 | 79.67s | 3,290 tok/s | MFU 1.5%
+step   3050 | loss 1.9947 | norm 0.25 | lr 3.84e-04 | 4.28s | 61,212 tok/s | MFU 27.0%
+step   3100 | loss 2.1016 | norm 0.26 | lr 3.75e-04 | 4.69s | 55,896 tok/s | MFU 24.7%
+step   3150 | loss 1.9932 | norm 0.26 | lr 3.66e-04 | 4.16s | 62,965 tok/s | MFU 27.8%
+step   3200 | loss 2.2024 | norm 0.24 | lr 3.57e-04 | 4.14s | 63,284 tok/s | MFU 27.9%
+EVAL step   3250 | train 1.9473 | val 1.8445 | acts:2.280  high:1.921  supreme:2.594  tribunal:1.618
+step   3250 | loss 1.8563 | norm 0.24 | lr 3.48e-04 | 71.67s | 3,658 tok/s | MFU 1.6%
+step   3300 | loss 2.0840 | norm 0.25 | lr 3.39e-04 | 4.35s | 60,243 tok/s | MFU 26.6%
+step   3350 | loss 1.8910 | norm 0.24 | lr 3.30e-04 | 3.98s | 65,797 tok/s | MFU 29.0%
+step   3400 | loss 1.8721 | norm 0.25 | lr 3.21e-04 | 4.13s | 63,463 tok/s | MFU 28.0%
+step   3450 | loss 2.0417 | norm 0.24 | lr 3.12e-04 | 4.15s | 63,148 tok/s | MFU 27.9%
+EVAL step   3500 | train 1.9086 | val 1.8289 | acts:2.257  high:1.903  supreme:2.570  tribunal:1.608
+step   3500 | loss 1.5564 | norm 0.25 | lr 3.03e-04 | 78.50s | 3,339 tok/s | MFU 1.5%
+step   3550 | loss 1.9072 | norm 0.24 | lr 2.94e-04 | 4.90s | 53,514 tok/s | MFU 23.6%
+step   3600 | loss 1.9613 | norm 0.23 | lr 2.85e-04 | 4.05s | 64,688 tok/s | MFU 28.5%
+step   3650 | loss 1.9518 | norm 0.24 | lr 2.76e-04 | 5.41s | 48,491 tok/s | MFU 21.4%
+step   3700 | loss 2.1573 | norm 0.26 | lr 2.67e-04 | 4.49s | 58,376 tok/s | MFU 25.8%
+EVAL step   3750 | train 1.8492 | val 1.8006 | acts:2.222  high:1.880  supreme:2.546  tribunal:1.574
+step   3750 | loss 1.6869 | norm 0.26 | lr 2.59e-04 | 72.10s | 3,636 tok/s | MFU 1.6%
+step   3800 | loss 1.9045 | norm 0.24 | lr 2.50e-04 | 4.56s | 57,433 tok/s | MFU 25.3%
+step   3850 | loss 1.9861 | norm 0.23 | lr 2.41e-04 | 4.55s | 57,596 tok/s | MFU 25.4%
+step   3900 | loss 1.9941 | norm 0.24 | lr 2.33e-04 | 4.25s | 61,721 tok/s | MFU 27.2%
+step   3950 | loss 1.7602 | norm 0.25 | lr 2.25e-04 | 4.02s | 65,278 tok/s | MFU 28.8%
+EVAL step   4000 | train 1.8688 | val 1.7841 | acts:2.200  high:1.862  supreme:2.526  tribunal:1.560
+step   4000 | loss 1.7689 | norm 0.22 | lr 2.16e-04 | 86.22s | 3,040 tok/s | MFU 1.3%
+step   4050 | loss 1.8208 | norm 0.23 | lr 2.08e-04 | 4.03s | 65,096 tok/s | MFU 28.7%
+step   4100 | loss 2.0490 | norm 0.23 | lr 2.00e-04 | 4.18s | 62,743 tok/s | MFU 27.7%
+step   4150 | loss 1.6984 | norm 0.28 | lr 1.92e-04 | 4.01s | 65,391 tok/s | MFU 28.9%
+step   4200 | loss 1.8186 | norm 0.23 | lr 1.85e-04 | 4.21s | 62,290 tok/s | MFU 27.5%
+EVAL step   4250 | train 1.8660 | val 1.7688 | acts:2.178  high:1.845  supreme:2.507  tribunal:1.547
+step   4250 | loss 1.9637 | norm 0.23 | lr 1.77e-04 | 64.67s | 4,054 tok/s | MFU 1.8%
+step   4300 | loss 1.7070 | norm 0.24 | lr 1.70e-04 | 4.11s | 63,734 tok/s | MFU 28.1%
+step   4350 | loss 2.0023 | norm 0.24 | lr 1.63e-04 | 3.99s | 65,705 tok/s | MFU 29.0%
+step   4400 | loss 1.8568 | norm 0.24 | lr 1.56e-04 | 4.21s | 62,328 tok/s | MFU 27.5%
+step   4450 | loss 1.6775 | norm 0.25 | lr 1.49e-04 | 4.09s | 64,110 tok/s | MFU 28.3%
+EVAL step   4500 | train 1.8367 | val 1.7552 | acts:2.157  high:1.833  supreme:2.492  tribunal:1.533
+step   4500 | loss 1.9281 | norm 0.23 | lr 1.42e-04 | 83.52s | 3,139 tok/s | MFU 1.4%
+step   4550 | loss 1.7139 | norm 0.23 | lr 1.36e-04 | 4.19s | 62,504 tok/s | MFU 27.6%
+step   4600 | loss 1.7851 | norm 0.22 | lr 1.30e-04 | 4.10s | 63,900 tok/s | MFU 28.2%
+step   4650 | loss 1.9142 | norm 0.24 | lr 1.24e-04 | 4.23s | 61,969 tok/s | MFU 27.3%
+step   4700 | loss 1.7982 | norm 0.22 | lr 1.18e-04 | 3.96s | 66,245 tok/s | MFU 29.2%
+EVAL step   4750 | train 1.8150 | val 1.7436 | acts:2.143  high:1.821  supreme:2.479  tribunal:1.523
+step   4750 | loss 1.6488 | norm 0.23 | lr 1.13e-04 | 71.11s | 3,686 tok/s | MFU 1.6%
+step   4800 | loss 1.8569 | norm 0.23 | lr 1.07e-04 | 3.95s | 66,329 tok/s | MFU 29.3%
+step   4850 | loss 1.7451 | norm 0.23 | lr 1.02e-04 | 3.95s | 66,328 tok/s | MFU 29.3%
+step   4900 | loss 1.9368 | norm 0.22 | lr 9.77e-05 | 3.95s | 66,304 tok/s | MFU 29.3%
+step   4950 | loss 1.7328 | norm 0.22 | lr 9.32e-05 | 4.22s | 62,104 tok/s | MFU 27.4%
+EVAL step   5000 | train 1.7596 | val 1.7357 | acts:2.130  high:1.810  supreme:2.467  tribunal:1.519
+step   5000 | loss 1.5714 | norm 0.22 | lr 8.90e-05 | 67.17s | 3,903 tok/s | MFU 1.7%
+step   5050 | loss 1.7344 | norm 0.23 | lr 8.51e-05 | 3.99s | 65,723 tok/s | MFU 29.0%
+step   5100 | loss 1.9275 | norm 0.23 | lr 8.14e-05 | 4.00s | 65,526 tok/s | MFU 28.9%
+step   5150 | loss 2.0023 | norm 0.24 | lr 7.80e-05 | 3.96s | 66,256 tok/s | MFU 29.2%
+step   5200 | loss 2.1405 | norm 0.24 | lr 7.49e-05 | 3.99s | 65,690 tok/s | MFU 29.0%
+EVAL step   5250 | train 1.7675 | val 1.7281 | acts:2.122  high:1.802  supreme:2.459  tribunal:1.512
+step   5250 | loss 1.8610 | norm 0.26 | lr 7.21e-05 | 57.47s | 4,561 tok/s | MFU 2.0%
+step   5300 | loss 1.7273 | norm 0.23 | lr 6.96e-05 | 3.97s | 66,098 tok/s | MFU 29.2%
+step   5350 | loss 2.1779 | norm 0.23 | lr 6.74e-05 | 3.96s | 66,193 tok/s | MFU 29.2%
+step   5400 | loss 1.8188 | norm 0.25 | lr 6.54e-05 | 3.95s | 66,318 tok/s | MFU 29.3%
+step   5450 | loss 1.6331 | norm 0.24 | lr 6.38e-05 | 3.98s | 65,805 tok/s | MFU 29.0%
+EVAL step   5500 | train 1.7941 | val 1.7239 | acts:2.113  high:1.795  supreme:2.453  tribunal:1.510
+step   5500 | loss 1.9929 | norm 0.23 | lr 6.24e-05 | 46.91s | 5,588 tok/s | MFU 2.5%
+step   5550 | loss 1.6790 | norm 0.23 | lr 6.14e-05 | 3.95s | 66,327 tok/s | MFU 29.3%
+step   5600 | loss 1.7069 | norm 0.23 | lr 6.06e-05 | 3.97s | 66,111 tok/s | MFU 29.2%
+step   5650 | loss 1.8487 | norm 0.22 | lr 6.02e-05 | 3.97s | 65,963 tok/s | MFU 29.1%
+EVAL step   5700 | train 1.7439 | val 1.7203 | acts:2.108  high:1.794  supreme:2.450  tribunal:1.505

@@ -1,0 +1,38 @@
+{
+  "acts": {
+    "tokens": 141839507,
+    "mean_docs": 1.1185,
+    "median_docs": 1.0,
+    "p90_docs": 2.0,
+    "max_docs": 3,
+    "pct_single_doc": 88.85,
+    "mean_frag_len": 915.5118462226195
+  },
+  "high": {
+    "tokens": 1497303564,
+    "mean_docs": 1.9885,
+    "median_docs": 2.0,
+    "p90_docs": 3.0,
+    "max_docs": 5,
+    "pct_single_doc": 38.0,
+    "mean_frag_len": 514.9610258989188
+  },
+  "supreme": {
+    "tokens": 252591591,
+    "mean_docs": 1.2155,
+    "median_docs": 1.0,
+    "p90_docs": 2.0,
+    "max_docs": 4,
+    "pct_single_doc": 80.10000000000001,
+    "mean_frag_len": 842.4516659810778
+  },
+  "tribunal": {
+    "tokens": 1616880704,
+    "mean_docs": 1.4875,
+    "median_docs": 1.0,
+    "p90_docs": 2.0,
+    "max_docs": 4,
+    "pct_single_doc": 60.3,
+    "mean_frag_len": 688.4033613445378
+  }
+}
