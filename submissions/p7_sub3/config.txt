@@ -1,0 +1,25 @@
+submission     p7_sub3
+created        2026-10-25 20:51
+phase          7 (PCR)
+checkpoint     ../checkpoints/pcr/pcr_topk/ckpt_best.pt
+arch efficient | finetune top_k | pooling mean | hard_neg False
+dev F1@7       0.3168 (BM25@4096 0.2991, ceiling 0.6181)
+note           top-4-layer fine-tune 25.7% on efficient arch, dev 0.3168
+  batch_size         16
+  checkpoint         ../checkpoints/arch3_efficient/ckpt_best.pt
+  epochs             6
+  finetune           top_k
+  grad_clip          1.0
+  hard_negatives     False
+  lorma_alpha        16.0
+  lorma_r            8
+  max_lr             0.0001
+  min_lr             2e-06
+  pooling            mean
+  run_name           pcr_topk
+  seed               1899
+  temp               0.05
+  tokenizer          /data1/yashy26/checkpoints/tokenizers/legal_32000.json
+  top_k_layers       4
+  warmup_frac        0.1
+  weight_decay       0.01

@@ -1,0 +1,23 @@
+submission     p3_sub3
+created        2026-10-16 19:51
+method         majority vote, ties -> first listed
+  member       ../checkpoints/rr/rr_decoder_plain/ckpt_best.pt
+  member       ../checkpoints/rr/rr_decoder_crf/ckpt_best.pt
+  member       ../checkpoints/rr/rr_decoder_w/ckpt_best.pt
+base_checkpoint ../checkpoints/arm_b_docmask/ckpt_best.pt
+note           3-way vote: plain 0.5617 / crf 0.5597 / weighted 0.5478
+
+vote changed 89/2197 (4.05%)
+
+  RatioOfTheDecision            765  34.82%
+  Fact                          439  19.98%
+  PrecedentReliedUpon           281  12.79%
+  ArgumentPetitioner            227  10.33%
+  Statute                       171   7.78%
+  ArgumentRespondent            114   5.19%
+  RulingByLowerCourt             97   4.42%
+  RulingByPresentCourt           47   2.14%
+  None                           29   1.32%
+  PrecedentNotReliedUpon         14   0.64%
+  Issue                          11   0.50%
+  Dissent                         2   0.09%

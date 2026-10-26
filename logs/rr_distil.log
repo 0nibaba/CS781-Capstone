@@ -1,0 +1,54 @@
+teacher geometry: context=24 ctx_frac=0.5 max_len=1024 crf=False
+train 80 docs -> 1321 blocks | dev 10 -> 166
+teacher: 110,326,285 params, 12 layers, dev macro-F1 0.5894 / acc 0.6522
+student: 67,849,741 params, 6 layers (61.5% of the teacher)
+
+------------------------------------------------------------------
+distilled: WITH distillation
+------------------------------------------------------------------
+/data1/yashy26/src/distill_rr.py:107: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  ep_k += float(kd)
+  epoch   1 | hard  1.3841 | kd  3.8367 | macro-F1 0.3744 | acc 0.4860  <- best
+  epoch   2 | hard  0.9165 | kd  2.2765 | macro-F1 0.4007 | acc 0.4771  <- best
+  epoch   3 | hard  0.4830 | kd  1.2036 | macro-F1 0.4603 | acc 0.5350  <- best
+  epoch   4 | hard  0.2945 | kd  0.7331 | macro-F1 0.4432 | acc 0.5584
+  epoch   5 | hard  0.2437 | kd  0.5363 | macro-F1 0.5065 | acc 0.5747  <- best
+  epoch   6 | hard  0.1572 | kd  0.3741 | macro-F1 0.4592 | acc 0.5747
+  epoch   7 | hard  0.1260 | kd  0.2756 | macro-F1 0.4900 | acc 0.5551
+  epoch   8 | hard  0.0758 | kd  0.1750 | macro-F1 0.5228 | acc 0.5971  <- best
+  epoch   9 | hard  0.0675 | kd  0.1270 | macro-F1 0.4826 | acc 0.5957
+  epoch  10 | hard  0.0521 | kd  0.0872 | macro-F1 0.5234 | acc 0.5915  <- best
+  epoch  11 | hard  0.0399 | kd  0.0580 | macro-F1 0.4891 | acc 0.6055
+  epoch  12 | hard  0.0362 | kd  0.0427 | macro-F1 0.4825 | acc 0.6018
+  best 0.5234 at epoch 10
+
+------------------------------------------------------------------
+hard_only: WITHOUT distillation
+------------------------------------------------------------------
+  epoch   1 | hard  1.2302 | kd  0.0000 | macro-F1 0.3838 | acc 0.4827  <- best
+  epoch   2 | hard  0.8051 | kd  0.0000 | macro-F1 0.3647 | acc 0.4832
+  epoch   3 | hard  0.4219 | kd  0.0000 | macro-F1 0.4807 | acc 0.5640  <- best
+  epoch   4 | hard  0.2783 | kd  0.0000 | macro-F1 0.4672 | acc 0.5317
+  epoch   5 | hard  0.1961 | kd  0.0000 | macro-F1 0.4484 | acc 0.5518
+  epoch   6 | hard  0.1282 | kd  0.0000 | macro-F1 0.4739 | acc 0.5336
+  epoch   7 | hard  0.0763 | kd  0.0000 | macro-F1 0.4511 | acc 0.5640
+  epoch   8 | hard  0.0487 | kd  0.0000 | macro-F1 0.4961 | acc 0.5761  <- best
+  epoch   9 | hard  0.0194 | kd  0.0000 | macro-F1 0.4858 | acc 0.5668
+  epoch  10 | hard  0.0126 | kd  0.0000 | macro-F1 0.4711 | acc 0.5467
+  epoch  11 | hard  0.0029 | kd  0.0000 | macro-F1 0.5184 | acc 0.5840  <- best
+  epoch  12 | hard  0.0020 | kd  0.0000 | macro-F1 0.5024 | acc 0.5775
+  best 0.5184 at epoch 11
+
+==================================================================
+summary
+==================================================================
+  model                         params  macro-F1   ms/batch
+  teacher (12 layer)       110,326,285    0.5894       21.5
+  student, distilled        67,849,741    0.5234       10.5
+  student, hard only        67,849,741    0.5184       10.5
+
+  distillation effect: +0.0050
+  retained vs teacher: 88.8% of macro-F1 at 61% of parameters, 2.05x faster
+
+  dev is 10 documents -- treat |effect| < 0.02 as a null.

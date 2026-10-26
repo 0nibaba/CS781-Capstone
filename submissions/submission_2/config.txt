@@ -1,0 +1,6 @@
+checkpoint: ../checkpoints/arm_b_docmask/ckpt_best.pt
+step: 5700
+val_loss: 1.7421931614875792
+decoding: T0.8 p0.95 k0 rp1.1 eosoff seed0
+mean_words: 127.6
+short: 15

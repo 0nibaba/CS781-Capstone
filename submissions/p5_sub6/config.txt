@@ -1,0 +1,10 @@
+submission     p5_sub6
+created        2026-10-23 11:09
+phase          5 (LSI)
+method         chunked inference, max aggregation
+checkpoint     ../checkpoints/lsi/lsi_distil/distilled_best.pt
+stride 768 max_chunks 8 max_len 1024
+dev macro-F1   0.4114 (single-window 0.4030)
+note           chunked inference over full document, max aggregation, dev 0.4114
+
+13019 docs, mean 4.66 labels/doc

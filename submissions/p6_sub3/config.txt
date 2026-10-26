@@ -1,0 +1,8 @@
+submission     p6_sub3
+created        2026-10-25 14:32
+phase          6 (summarization)
+checkpoint     ../checkpoints/summ/summ_topk/ckpt_best.pt
+arch decoder | decoding greedy-256
+dev BERTScore  0.8084 (lead-512 baseline 0.8300)
+mean gen len   340 tokens
+note           decoder, top-4-layer fine-tune 25.7% trainable, greedy-256, dev 0.8084

@@ -1,0 +1,8 @@
+submission     p6_sub2
+created        2026-10-24 00:44
+phase          6 (summarization)
+checkpoint     ../checkpoints/summ/summ_lorma/ckpt_best.pt
+arch prefix_lm | decoding greedy-480-norep4
+dev BERTScore  0.8290 (lead-512 baseline 0.8300)
+mean gen len   481 tokens
+note           prefix-LM + LoRMA 0.34% trainable, greedy + no-repeat-4, dev 0.8290

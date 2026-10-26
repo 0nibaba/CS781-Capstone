@@ -1,0 +1,46 @@
+nohup: ignoring input
+teacher: prefix_lm, 110,611,200 params, train-time BERTScore 0.7895
+Loading weights:   0%|          | 0/389 [00:00<?, ?it/s]Loading weights:  80%|████████  | 313/389 [00:00<00:00, 3074.96it/s]Loading weights: 100%|██████████| 389/389 [00:00<00:00, 2839.83it/s]
+[transformers] [1mRobertaModel LOAD REPORT[0m from: roberta-large
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+pooler.dense.bias         | MISSING    | 
+pooler.dense.weight       | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+student: 67,987,200 params (61.5%)
+baseline: lead-512 extraction = 0.8300
+
+
+------------------------------------------------------------------
+distilled: WITH distillation
+------------------------------------------------------------------
+  ep 1 | hard 2.7617 | kd 0.7385 | BERTScore 0.8166  <- best
+  ep 2 | hard 2.1570 | kd 0.4114 | BERTScore 0.8231  <- best
+  ep 3 | hard 1.8845 | kd 0.3484 | BERTScore 0.8262  <- best
+  ep 4 | hard 1.6735 | kd 0.3216 | BERTScore 0.8267  <- best
+  ep 5 | hard 1.5335 | kd 0.3120 | BERTScore 0.8273  <- best
+  best 0.8273
+
+------------------------------------------------------------------
+hard_only: WITHOUT distillation
+------------------------------------------------------------------
+  ep 1 | hard 2.9740 | kd 0.0000 | BERTScore 0.8173  <- best
+  ep 2 | hard 2.3575 | kd 0.0000 | BERTScore 0.8193  <- best
+  ep 3 | hard 1.9272 | kd 0.0000 | BERTScore 0.8250  <- best
+  ep 4 | hard 1.5073 | kd 0.0000 | BERTScore 0.8269  <- best
+  ep 5 | hard 1.1970 | kd 0.0000 | BERTScore 0.8225
+  best 0.8269
+
+==================================================================
+  teacher (train-time) 0.7895
+  student, distilled   0.8273
+  student, hard only   0.8269
+  distillation effect: +0.0004

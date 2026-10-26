@@ -1,0 +1,13 @@
+submission     p5_sub7
+created        2026-10-23 11:56
+phase          5 (LSI)
+method         probability-averaging ensemble, per-label thresholds
+  member       ../checkpoints/lsi/lsi_distil/distilled_best.pt:../checkpoints/arm_b_docmask/ckpt_best.pt
+  member       ../checkpoints/lsi/lsi_full3/ckpt_best.pt:../checkpoints/arm_b_docmask/ckpt_best.pt
+  member       ../checkpoints/lsi/lsi_topk/ckpt_best.pt:../checkpoints/arch3_efficient/ckpt_best.pt
+  member       ../checkpoints/lsi/lsi_lorma/ckpt_best.pt:../checkpoints/arch2_prefix_3B/ckpt_best.pt
+  member       ../checkpoints/lsi/lsi_encdec/ckpt_best.pt:../checkpoints/arch4_encdec/ckpt_best.pt
+dev macro-F1   0.4132 (best single 0.4030)
+note           5-model cross-architecture probability ensemble, per-label thresholds, dev 0.4132
+
+13019 docs, mean 4.61 labels/doc

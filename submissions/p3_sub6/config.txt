@@ -1,0 +1,43 @@
+submission     p3_sub6
+created        2026-10-16 21:09
+phase          3 (Rhetorical Role)
+
+rr_checkpoint  ../checkpoints/rr/rr_distil/distilled_best.pt
+base_checkpoint ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch           decoder
+block geometry context=<torch.amp.autocast_mode.autocast object at 0x7caa166f58d0> ctx_frac=0.5 max_len=1024
+crf            False
+dev macro-F1   0.5234 @ epoch 10
+note           distilled student, 6/12 layers, 61% params, 2.05x faster, dev 0.5234
+
+train args:
+  alpha              0.7
+  arch               decoder
+  base_checkpoint    ../checkpoints/arm_b_docmask/ckpt_best.pt
+  batch_size         4
+  dropout            0.1
+  epochs             12
+  grad_clip          1.0
+  keep_every         2
+  max_lr             5e-05
+  min_lr             5e-06
+  out_dir            /data1/yashy26/checkpoints/rr/rr_distil
+  run_name           rr_distil
+  seed               1899
+  teacher_dir        ../checkpoints/rr/rr_ctx24
+  temperature        2.0
+  weight_decay       0.01
+
+10 docs / 2197 sentences
+predicted label distribution:
+  RatioOfTheDecision            937  42.65%
+  Fact                          408  18.57%
+  PrecedentReliedUpon           272  12.38%
+  ArgumentPetitioner            219   9.97%
+  Statute                       139   6.33%
+  ArgumentRespondent             88   4.01%
+  RulingByLowerCourt             57   2.59%
+  RulingByPresentCourt           34   1.55%
+  PrecedentNotReliedUpon         26   1.18%
+  None                            9   0.41%
+  Issue                           8   0.36%

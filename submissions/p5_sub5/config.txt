@@ -1,0 +1,30 @@
+submission     p5_sub5
+created        2026-10-23 10:54
+phase          5 (LSI)
+checkpoint     ../checkpoints/lsi/lsi_distil/distilled_best.pt
+base           ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch decoder mode head pooling mean max_len 1024
+threshold rule per_label
+dev macro-F1   0.4030 (@0.5 0.2680, global 0.3798)
+note           distilled student 6/12 layers, dev 0.4030 -- exceeds its 0.4004 teacher at 62% params
+  alpha              0.7
+  arch               decoder
+  base_checkpoint    ../checkpoints/arm_b_docmask/ckpt_best.pt
+  batch_size         8
+  epochs             3
+  eval_every         2500
+  grad_clip          1.0
+  keep_every         2
+  max_len            1024
+  max_lr             5e-05
+  min_lr             5e-06
+  mode               head
+  out_dir            /data1/yashy26/checkpoints/lsi/lsi_distil
+  pooling            mean
+  run_name           lsi_distil
+  seed               1899
+  teacher_dir        ../checkpoints/lsi/lsi_full3
+  temperature        2.0
+  weight_decay       0.01
+
+13019 docs, 62749 label assignments, mean 4.82/doc, 100 distinct statutes

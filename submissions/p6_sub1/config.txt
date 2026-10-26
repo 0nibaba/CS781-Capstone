@@ -1,0 +1,8 @@
+submission     p6_sub1
+created        2026-10-23 22:17
+phase          6 (summarization)
+checkpoint     ../checkpoints/summ/summ_encdec/ckpt_best.pt
+arch encdec | decoding topk50-480
+dev BERTScore  0.8214 (lead-512 baseline 0.8300)
+mean gen len   481 tokens
+note           encdec full fine-tune, top-k50 sampling, min_len 480, dev 0.8225

@@ -1,0 +1,7 @@
+checkpoint: ../checkpoints/ner/crf_all_all/ckpt_final.pt
+base: ../checkpoints/arch2_prefix_3B/ckpt_best.pt
+arch: prefix_lm
+crf: True
+position: False
+decode: lenient=False bridge=3 min_chars=3
+entities: 3587

@@ -1,0 +1,23 @@
+tokenised in 79s | train 37387 | dev 1988 | mode tail
+train prior [0.5902318954467773, 0.40976810455322266] | dev prior [0.5, 0.5]
+  LoRMA+ r=8 alpha=16.0 targets=('q', 'v')
+  adapted 12 projections
+  trainable 294,912 / 110,611,200 (0.267%)
+arch prefix_lm | pooling mean | trainable 296,450/110,612,738 (0.27%)
+4674 steps/epoch x 3 = 14022 steps
+
+  ep 1 step  1500 | loss 0.6385 | macro-F1 0.6352 | +prior 0.6589 | acc 0.6459 | pred1 0.329  <- best
+  ep 1 step  3000 | loss 0.5509 | macro-F1 0.6479 | +prior 0.6747 | acc 0.6650 | pred1 0.280  <- best
+  ep 1 step  4500 | loss 0.5331 | macro-F1 0.6108 | +prior 0.6566 | acc 0.6378 | pred1 0.236
+  ep 1 step  4674 | loss 0.5192 | macro-F1 0.6251 | +prior 0.6524 | acc 0.6509 | pred1 0.237
+  ep 2 step  6000 | loss 0.5055 | macro-F1 0.5818 | +prior 0.6350 | acc 0.6288 | pred1 0.165
+  ep 2 step  7500 | loss 0.4913 | macro-F1 0.6086 | +prior 0.6324 | acc 0.6469 | pred1 0.187
+  ep 2 step  9000 | loss 0.4812 | macro-F1 0.6606 | +prior 0.6836 | acc 0.6801 | pred1 0.261  <- best
+  ep 2 step  9348 | loss 0.4639 | macro-F1 0.6385 | +prior 0.6735 | acc 0.6640 | pred1 0.234
+  ep 3 step 10500 | loss 0.4343 | macro-F1 0.6492 | +prior 0.6681 | acc 0.6730 | pred1 0.239
+  ep 3 step 12000 | loss 0.4245 | macro-F1 0.6569 | +prior 0.6797 | acc 0.6771 | pred1 0.258
+  ep 3 step 13500 | loss 0.4157 | macro-F1 0.6472 | +prior 0.6602 | acc 0.6730 | pred1 0.229
+  ep 3 step 14022 | loss 0.4155 | macro-F1 0.6570 | +prior 0.6666 | acc 0.6801 | pred1 0.240
+
+best dev macro-F1 0.6836 (decision rule: adj)
+reference: majority-class macro-F1 0.3333 on a balanced dev set

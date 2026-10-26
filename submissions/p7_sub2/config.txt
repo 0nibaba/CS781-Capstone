@@ -1,0 +1,25 @@
+submission     p7_sub2
+created        2026-10-25 20:50
+phase          7 (PCR)
+checkpoint     ../checkpoints/pcr/pcr_lorma/ckpt_best.pt
+arch prefix_lm | finetune lorma | pooling mean | hard_neg False
+dev F1@7       0.3202 (BM25@4096 0.2991, ceiling 0.6181)
+note           LoRMA 0.27% on prefix-LM, 4-chunk max-sim, dev 0.3202
+  batch_size         16
+  checkpoint         ../checkpoints/arch2_prefix_3B/ckpt_best.pt
+  epochs             6
+  finetune           lorma
+  grad_clip          1.0
+  hard_negatives     False
+  lorma_alpha        16.0
+  lorma_r            8
+  max_lr             0.0003
+  min_lr             2e-06
+  pooling            mean
+  run_name           pcr_lorma
+  seed               1899
+  temp               0.05
+  tokenizer          /data1/yashy26/checkpoints/tokenizers/legal_32000.json
+  top_k_layers       4
+  warmup_frac        0.1
+  weight_decay       0.01

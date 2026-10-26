@@ -1,0 +1,36 @@
+train 80 docs -> 736 blocks
+dev   10 docs -> 92 blocks
+arch decoder | crf False | lorma False | trainable 110,326,285 / 110,326,285 (100.00%)
+184 steps/epoch x 12 epochs = 2208 steps
+
+  epoch   1 | train    1.7227 | macro-F1 0.4342 | acc 0.5495 | CL 0.3790 IT 0.4279  <- best
+  epoch   2 | train    1.1524 | macro-F1 0.5051 | acc 0.5868 | CL 0.4901 IT 0.5349  <- best
+  epoch   3 | train    0.6116 | macro-F1 0.5462 | acc 0.6223 | CL 0.5558 IT 0.5095  <- best
+  epoch   4 | train    0.3106 | macro-F1 0.4978 | acc 0.5593 | CL 0.3903 IT 0.5369
+  epoch   5 | train    0.1694 | macro-F1 0.5481 | acc 0.6195 | CL 0.4529 IT 0.5782  <- best
+  epoch   6 | train    0.1023 | macro-F1 0.5360 | acc 0.5957 | CL 0.4311 IT 0.5655
+  epoch   7 | train    0.0589 | macro-F1 0.5076 | acc 0.5845 | CL 0.4003 IT 0.5474
+  epoch   8 | train    0.0367 | macro-F1 0.5331 | acc 0.6022 | CL 0.4391 IT 0.5684
+  epoch   9 | train    0.0133 | macro-F1 0.5405 | acc 0.5948 | CL 0.4316 IT 0.5859
+  epoch  10 | train    0.0095 | macro-F1 0.5316 | acc 0.6027 | CL 0.4341 IT 0.5670
+  epoch  11 | train    0.0060 | macro-F1 0.5431 | acc 0.6036 | CL 0.4407 IT 0.5796
+  epoch  12 | train    0.0028 | macro-F1 0.5507 | acc 0.6111 | CL 0.4449 IT 0.5909  <- best
+
+best dev macro-F1 0.5507 at epoch 12
+reference: majority 0.029, copy-previous-gold oracle 0.754
+
+best epoch
+  macro-F1 0.5507  (P 0.5966 / R 0.5313)   accuracy 0.6111   labels scored 11/13
+  label                          P       R      F1     tp     fp     fn
+  --------------------------------------------------------------------
+  PrecedentNotReliedUpon    0.3409  0.3000  0.3191     15     29     35
+  RulingByLowerCourt        0.3678  0.3137  0.3386     32     55     70
+  None                      0.6429  0.2727  0.3830      9      5     24
+  PrecedentReliedUpon       0.5388  0.4370  0.4826    111     95    143
+  Issue                     0.5714  0.5333  0.5517      8      6      7
+  ArgumentPetitioner        0.6719  0.5375  0.5972    215    105    185
+  RulingByPresentCourt      0.6512  0.5714  0.6087     28     15     21
+  ArgumentRespondent        0.7592  0.5331  0.6263    145     46    127
+  RatioOfTheDecision        0.5282  0.8139  0.6406    328    293     75
+  Fact                      0.6619  0.7230  0.6911    321    164    123
+  Statute                   0.8291  0.8083  0.8186     97     20     23

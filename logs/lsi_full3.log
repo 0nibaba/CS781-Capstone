@@ -1,0 +1,21 @@
+tokenised in 46s | train 42750 | dev 10181 | mode head | pooling mean
+label positive rate: min 0.0064 median 0.0159 max 0.2744
+arch decoder | finetune full | trainable 110,393,188/110,393,188 (100.00%)
+5344 steps/epoch x 4 = 21376 steps
+
+  ep 1 step  2000 | loss 0.1538 | macro@.5 0.1109 | global 0.2359@0.10 | per-label 0.2796 | micro 0.3104  <- best
+  ep 1 step  4000 | loss 0.1032 | macro@.5 0.1367 | global 0.2932@0.08 | per-label 0.3341 | micro 0.2832  <- best
+  ep 1 step  5344 | loss 0.0983 | macro@.5 0.1507 | global 0.3070@0.13 | per-label 0.3469 | micro 0.3326  <- best
+  ep 2 step  6000 | loss 0.0962 | macro@.5 0.1994 | global 0.3096@0.13 | per-label 0.3572 | micro 0.3795  <- best
+  ep 2 step  8000 | loss 0.0909 | macro@.5 0.2239 | global 0.3391@0.15 | per-label 0.3769 | micro 0.4226  <- best
+  ep 2 step 10000 | loss 0.0883 | macro@.5 0.2376 | global 0.3477@0.15 | per-label 0.3831 | micro 0.4223  <- best
+  ep 2 step 10688 | loss 0.0881 | macro@.5 0.2409 | global 0.3493@0.15 | per-label 0.3849 | micro 0.4227  <- best
+  ep 3 step 12000 | loss 0.0810 | macro@.5 0.2538 | global 0.3620@0.15 | per-label 0.3871 | micro 0.4379  <- best
+  ep 3 step 14000 | loss 0.0750 | macro@.5 0.2655 | global 0.3676@0.18 | per-label 0.3947 | micro 0.4387  <- best
+  ep 3 step 16000 | loss 0.0730 | macro@.5 0.2926 | global 0.3771@0.15 | per-label 0.4002 | micro 0.4580  <- best
+  ep 3 step 16032 | loss 0.0713 | macro@.5 0.2680 | global 0.3768@0.13 | per-label 0.4004 | micro 0.4419  <- best
+  ep 4 step 18000 | loss 0.0604 | macro@.5 0.2804 | global 0.3772@0.18 | per-label 0.3955 | micro 0.4500
+  ep 4 step 20000 | loss 0.0596 | macro@.5 0.2873 | global 0.3783@0.15 | per-label 0.3969 | micro 0.4548
+  ep 4 step 21376 | loss 0.0588 | macro@.5 0.2870 | global 0.3785@0.15 | per-label 0.3996 | micro 0.4615
+
+best dev macro-F1 (per-label thresholds) 0.4004

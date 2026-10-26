@@ -1,0 +1,8 @@
+checkpoint: ../checkpoints/arch3_efficient/ckpt_best.pt
+arch: efficient
+step: 5700
+val_loss: 1.7199617072343827
+test_file: /data1/yashy26/test_data/Phase_1_Pretraining/Test/test.json
+decoding: T0.8 p0.95 k0 rp1.1 eosoff seed0
+mean_words: 126.8
+short: 28

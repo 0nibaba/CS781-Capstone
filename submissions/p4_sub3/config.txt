@@ -1,0 +1,28 @@
+submission     p4_sub3
+created        2026-10-21 23:26
+phase          4 (CJPE)
+checkpoint     ../checkpoints/cjpe/cjpe_head/ckpt_best.pt
+base           ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch decoder mode head pooling last max_len 1024 decision raw
+dev macro-F1   0.5429
+note           head 1024 ablation, dev 0.5429 -- position ablation evidence
+  batch_size         8
+  checkpoint         ../checkpoints/arm_b_docmask/ckpt_best.pt
+  class_weights      none
+  dropout            0.1
+  epochs             3
+  eval_every         1500
+  grad_clip          1.0
+  limit_train        0
+  max_len            1024
+  max_lr             3e-05
+  min_lr             3e-06
+  mode               head
+  pooling            last
+  run_name           cjpe_head
+  seed               1899
+  tokenizer          /data1/yashy26/checkpoints/tokenizers/legal_32000.json
+  warmup_frac        0.06
+  weight_decay       0.01
+
+1517 predictions: 0 -> 1117 (73.6%), 1 -> 400 (26.4%)

@@ -187,7 +187,7 @@ class GPT(nn.Module):
                                  fused=(fused_ok and device_type == "cuda"))
 
     def forward(self, idx, targets=None, attn_mask=None,
-                past_caches=None, use_cache=False):
+                past_caches=None, use_cache=False, return_hidden = False):
         b, t = idx.size()
 
         offset = 0 if past_caches is None else past_caches[0][0].size(2)
@@ -207,6 +207,8 @@ class GPT(nn.Module):
             new_caches.append(nc)
 
         x = self.transformer.ln_f(x)
+        if return_hidden:
+            return x
         logits = self.lm_head(x)
 
         loss = None

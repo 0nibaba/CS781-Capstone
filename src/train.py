@@ -8,6 +8,11 @@ import torch
 import torch.nn.functional as F
 from contextlib import nullcontext
 from decoder_only_transformer import GPT, ModelConfig
+from prefix_gpt import PrefixGPT
+from prefix_lm import PrefixModelConfig, SPLIT_EVAL
+from efficient_attn import EfficientModelConfig, EfficientGPT
+from encoder_decoder import EncoderDecoder, EncDecConfig
+from encdec_data import EncDecBatcher
 
 CSV_FIELDS = [
     "step", "tokens_seen", "train_loss", "val_loss_total",
@@ -87,26 +92,44 @@ def get_lr(step, warmup, max_steps, max_lr, min_lr):
 
 @torch.no_grad()
 def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
-                  block_size):
+                  block_size, arch="decoder", batcher=None):
     """
     Returns aggregate and per-source losses, plus loss as a function of
-    position within the block (length block_size, averaged over batch and
-    iterations). The per-position vector is what tests prediction P2:
-    cross-document contamination should worsen with accumulated context,
-    so any benefit from masking should grow at later positions.
+    position within the block.
+
+    For arch="prefix_lm" only positions in [SPLIT_EVAL*T - 1, T-2] carry loss
+    during training. Unsupervised positions are set to NaN rather than being
+    averaged in, so the per-position curves are not silently misread and the
+    reported loss is over supervised positions only — i.e. what the objective
+    actually optimises. This is NOT directly comparable to the decoder's
+    all-positions loss; see decisions.md.
     """
     model.eval()
     out = {}
 
     losses = torch.zeros(train_iters)
     for k in range(train_iters):
-        X, Y = dl.get_batch("train", batch_size, device)
         with ctx:
-            _, loss = model(X, targets=Y)
+            if arch == "encdec":
+                e, em, d, t, dm = batcher.get_batch("train", batch_size, device)
+                _, loss = model(e, d, targets=t, enc_pad_mask=em, dec_pad_mask=dm)
+            else:
+                X, Y = dl.get_batch("train", batch_size, device)
+                _, loss = model(X, targets=Y)
         losses[k] = loss.item()
     out["train"] = losses.mean().item()
 
-    dl.eval_rng.manual_seed(1337)          # same windows at every eval
+    # supervised-position mask, prefix_lm only
+    sup = None
+    if arch == "prefix_lm":
+        s = int(SPLIT_EVAL * block_size)
+        sup = torch.zeros(block_size, dtype=torch.bool, device=device)
+        sup[max(s - 1, 0):block_size - 1] = True
+
+    dl.eval_rng.manual_seed(1337)
+    if arch == "encdec":
+        batcher.eval_rng.seed(1337)          # BOTH RNGs, or the val curve drifts
+
     out["val_sources"] = {}
     out["pos_loss_sources"] = {}
     total = 0.0
@@ -117,17 +140,25 @@ def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
         pos_sum = torch.zeros(block_size, dtype=torch.float64)
 
         for k in range(val_iters):
+            if arch == "encdec":
+                e, em, d, t, dm = batcher.get_batch("val", batch_size,
+                                                    device, source=src)
+                with ctx:
+                    _, loss = model(e, d, targets=t,
+                                    enc_pad_mask=em, dec_pad_mask=dm)
+                ls[k] = loss.item()
+                continue        # no per-position curve: targets are variable length
+
             X, Y = dl.get_batch("val", batch_size, device, source=src)
             with ctx:
                 logits, _ = model(X)
                 per_tok = F.cross_entropy(
                     logits.view(-1, logits.size(-1)).float(),
-                    Y.reshape(-1),
-                    reduction="none",
-                ).view(Y.shape)                       # (B, T)
-
-            ls[k] = per_tok.mean().item()
-            pos_sum += per_tok.mean(dim=0).double().cpu()   # (T,)
+                    Y.reshape(-1), reduction="none").view(Y.shape)
+            if sup is not None:
+                per_tok = per_tok.masked_fill(~sup.view(1, -1), float("nan"))
+            ls[k] = torch.nanmean(per_tok).item()
+            pos_sum += torch.nanmean(per_tok, dim=0).double().cpu()
 
         m = ls.mean().item()
         out["val_sources"][src] = m
@@ -184,6 +215,14 @@ def train():
     p.add_argument("--compile", action="store_true")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--doc_mask", action="store_true", help="mask attention across document boundaries")
+    p.add_argument("--arch", choices=["decoder", "prefix_lm", "efficient", "encdec"],
+                   default="decoder",
+                   help="architecture; decoder = causal LM, prefix_lm = bidirectional prefix + causal suffix, "
+                        "efficient = local/global interleaved (windowed attention in most layers, full causal in a few)"
+                        "encoder-decoder with span corruption")
+    p.add_argument("--window_size", type = int, default = 256)
+    p.add_argument("--global_layers", type = str, default = "3, 7, 11")
+    p.add_argument("--tokenizer", default=os.path.join(ROOT, "checkpoints/tokenizers/legal_32000.json"))
     args = p.parse_args()
 
     torch.manual_seed(args.seed)
@@ -204,11 +243,52 @@ def train():
                           weights=parse_mixture(args.mixture))
     print(f"mixture: {dl.weights}\n")
 
-    config = ModelConfig(block_size=args.block_size, n_layer=args.n_layer,
-                         n_head=args.n_head, d_model=args.d_model,
-                         dropout=args.dropout, doc_mask = args.doc_mask, eos_id=0)
-    model = GPT(config)
-    print(f"model: {sum(q.numel() for q in model.parameters()):,} params")
+    batcher = None
+    if args.arch == "encdec":
+        from tokenizers import Tokenizer
+        tok = Tokenizer.from_file(args.tokenizer)
+        sentinels = [tok.token_to_id(f"<|unused{i}|>") for i in range(10)]
+        assert all(s is not None for s in sentinels), "sentinels missing from vocab"
+        batcher = EncDecBatcher(dl, sentinels, seed=args.seed)
+        print(f"span corruption: sentinels {sentinels}")
+
+    if args.arch == "decoder":
+        config = ModelConfig(block_size=args.block_size, n_layer=args.n_layer,
+                             n_head=args.n_head, d_model=args.d_model,
+                             dropout=args.dropout,
+                             doc_mask=args.doc_mask, eos_id=0)
+        model = GPT(config)
+    elif args.arch == "prefix_lm":
+        config = PrefixModelConfig(block_size=args.block_size,
+                                   n_layer=args.n_layer, n_head=args.n_head,
+                                   d_model=args.d_model, dropout=args.dropout,
+                                   use_internal_causal_mask=False, doc_mask=args.doc_mask, eos_id = 0)
+        model = PrefixGPT(config)
+    elif args.arch == "efficient":
+        config = EfficientModelConfig(
+            block_size = args.block_size,
+            n_layer=args.n_layer,
+            n_head=args.n_head,
+            d_model=args.d_model,
+            dropout=args.dropout,
+            window_size=args.window_size,
+            global_layers=tuple(int(x) for x in args.global_layers.split(",")),
+            attention_mode="masked",
+            doc_mask=args.doc_mask,
+            eos_id=0
+        )
+        model = EfficientGPT(config)
+
+    elif args.arch == "encdec":
+        if args.doc_mask:
+            raise ValueError("--doc_mask is not implemented for encdec")
+        config = EncDecConfig(block_size=args.block_size,
+                              n_encoder_layer=4, n_decoder_layer=6,
+                              n_head=args.n_head, d_model=args.d_model,
+                              dropout=args.dropout)
+        model = EncoderDecoder(config)
+
+    print(f"arch: {args.arch} | {sum(q.numel() for q in model.parameters()):,} params")
 
     step, best_val, tokens_seen = 0, float("inf"), 0
 
@@ -218,6 +298,11 @@ def train():
         if os.path.exists(ckpt_path):
             print(f"resuming from {ckpt_path}")
             ck = torch.load(ckpt_path, map_location="cpu", weights_only = False)
+            saved_arch = ck.get("arch", "decoder")
+            if saved_arch != args.arch:
+                raise ValueError(
+                    f"checkpoint was trained with arch={saved_arch}, "
+                    f"but --arch {args.arch} was given")
             sd = ck["model"]
             for k in list(sd):
                 if k.startswith("_orig_mod."):
@@ -263,14 +348,15 @@ def train():
 
         if step % args.eval_interval == 0 or step == args.max_steps:
             L = estimate_loss(model, dl, args.batch_size, args.eval_train_iters,
-                              args.eval_val_iters, ctx, device, args.block_size)
+                              args.eval_val_iters, ctx, device, args.block_size, arch = args.arch, batcher = batcher)
 
-            np.savez_compressed(
-                os.path.join(run_dir, f"pos_loss_{step:06d}.npz"),
-                step=step,
-                overall=L["pos_loss"],
-                **{f"src_{s}": v for s, v in L["pos_loss_sources"].items()},
-            )
+            if args.arch != "encdec":
+                np.savez_compressed(
+                    os.path.join(run_dir, f"pos_loss_{step:06d}.npz"),
+                    step=step,
+                    overall=L["pos_loss"],
+                    **{f"src_{s}": v for s, v in L["pos_loss_sources"].items()},
+                )
             
             row = {f: "" for f in CSV_FIELDS}
             row.update({
@@ -295,6 +381,7 @@ def train():
                 "model": raw_model.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "config": config.__dict__,
+                "arch": args.arch,
                 "step": step, "best_val_loss": best_val,
                 "tokens_seen": tokens_seen,
                 "torch_rng": torch.get_rng_state(),
@@ -313,9 +400,15 @@ def train():
 
         optimizer.zero_grad(set_to_none=True)
         for _ in range(args.grad_accum_steps):
-            X, Y = dl.get_batch("train", args.batch_size, device)
             with ctx:
-                _, loss = model(X, targets=Y)
+                if args.arch == "encdec":
+                    e, em, d, t, dm = batcher.get_batch("train",
+                                                        args.batch_size, device)
+                    _, loss = model(e, d, targets=t,
+                                    enc_pad_mask=em, dec_pad_mask=dm)
+                else:
+                    X, Y = dl.get_batch("train", args.batch_size, device)
+                    _, loss = model(X, targets=Y)
                 loss = loss / args.grad_accum_steps
             loss.backward()
 

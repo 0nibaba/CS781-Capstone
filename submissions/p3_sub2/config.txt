@@ -1,0 +1,46 @@
+submission     p3_sub2
+created        2026-10-16 19:39
+phase          3 (Rhetorical Role)
+
+rr_checkpoint  ../checkpoints/rr/rr_decoder_all/ckpt_final.pt
+base_checkpoint ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch           decoder
+crf            False
+dev macro-F1   0.9959 @ epoch 10
+note           plain decoder, all 90 docs, epochs=10 from dev-validated run
+
+train args:
+  all_data           True
+  batch_size         4
+  checkpoint         ../checkpoints/arm_b_docmask/ckpt_best.pt
+  class_weights      none
+  domains            CL,IT
+  dropout            0.1
+  epochs             10
+  grad_clip          1.0
+  lorma_alpha        16.0
+  lorma_r            8
+  max_lr             3e-05
+  min_lr             3e-06
+  run_name           rr_decoder_all
+  seed               1899
+  tokenizer          /data1/yashy26/checkpoints/tokenizers/legal_32000.json
+  use_crf            False
+  use_lorma          False
+  warmup_frac        0.1
+  weight_decay       0.01
+
+10 docs / 2197 sentences
+predicted label distribution:
+  RatioOfTheDecision            727  33.09%
+  Fact                          484  22.03%
+  PrecedentReliedUpon           305  13.88%
+  ArgumentPetitioner            238  10.83%
+  Statute                       166   7.56%
+  RulingByLowerCourt            101   4.60%
+  ArgumentRespondent             85   3.87%
+  RulingByPresentCourt           46   2.09%
+  None                           21   0.96%
+  PrecedentNotReliedUpon         13   0.59%
+  Issue                           9   0.41%
+  Dissent                         2   0.09%

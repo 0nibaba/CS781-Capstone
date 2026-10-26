@@ -1,0 +1,15 @@
+nohup: ignoring input
+tokenised in 45s | train 42750 | dev 10181 | mode head | pooling mean
+label positive rate: min 0.0064 median 0.0159 max 0.2744
+arch decoder | finetune full | trainable 110,393,188/110,393,188 (100.00%)
+5344 steps/epoch x 2 = 10688 steps
+
+  ep 1 step  2000 | loss 0.1412 | macro@.5 0.1180 | global 0.2500@0.08 | per-label 0.2956 | micro 0.3256  <- best
+  ep 1 step  4000 | loss 0.1016 | macro@.5 0.1434 | global 0.3038@0.10 | per-label 0.3387 | micro 0.2941  <- best
+  ep 1 step  5344 | loss 0.0967 | macro@.5 0.1623 | global 0.3181@0.10 | per-label 0.3541 | micro 0.3421  <- best
+  ep 2 step  6000 | loss 0.0945 | macro@.5 0.2034 | global 0.3217@0.13 | per-label 0.3639 | micro 0.3810  <- best
+  ep 2 step  8000 | loss 0.0877 | macro@.5 0.2275 | global 0.3493@0.15 | per-label 0.3784 | micro 0.4218  <- best
+  ep 2 step 10000 | loss 0.0847 | macro@.5 0.2325 | global 0.3528@0.15 | per-label 0.3819 | micro 0.4175  <- best
+  ep 2 step 10688 | loss 0.0849 | macro@.5 0.2457 | global 0.3572@0.15 | per-label 0.3849 | micro 0.4280  <- best
+
+best dev macro-F1 (per-label thresholds) 0.3849

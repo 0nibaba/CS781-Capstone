@@ -1,0 +1,33 @@
+nohup: ignoring input
+teacher: decoder, 110,316,288 params, dev F1@7 0.3346
+5308 pairs | dev ceiling 0.6181 | BM25@4096 0.2991
+student: 67,839,744 params (61.5%)
+
+------------------------------------------------------------------
+distilled: WITH distillation
+------------------------------------------------------------------
+  epoch 1 | hard 1.1648 | kd 0.1252 | F1@7 0.3046  <- best
+  epoch 2 | hard 0.9240 | kd 0.0849 | F1@7 0.2946
+  epoch 3 | hard 0.8752 | kd 0.0578 | F1@7 0.3102  <- best
+  epoch 4 | hard 0.7588 | kd 0.0541 | F1@7 0.3124  <- best
+  epoch 5 | hard 0.6785 | kd 0.0524 | F1@7 0.3135  <- best
+  epoch 6 | hard 0.6071 | kd 0.0517 | F1@7 0.3157  <- best
+  best 0.3157
+
+------------------------------------------------------------------
+hard_only: WITHOUT distillation
+------------------------------------------------------------------
+  epoch 1 | hard 1.2864 | kd 0.0000 | F1@7 0.2790  <- best
+  epoch 2 | hard 1.0905 | kd 0.0000 | F1@7 0.2802  <- best
+  epoch 3 | hard 0.9311 | kd 0.0000 | F1@7 0.2935  <- best
+  epoch 4 | hard 0.7535 | kd 0.0000 | F1@7 0.2979  <- best
+  epoch 5 | hard 0.6299 | kd 0.0000 | F1@7 0.2991  <- best
+  epoch 6 | hard 0.5473 | kd 0.0000 | F1@7 0.3024  <- best
+  best 0.3024
+
+==================================================================
+  teacher            0.3346
+  student, distilled 0.3157
+  student, hard only 0.3024
+  distillation effect: +0.0133
+  truncation cost:     +0.0322

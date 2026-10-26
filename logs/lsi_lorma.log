@@ -1,0 +1,21 @@
+tokenised in 46s | train 42750 | dev 10181 | mode head | pooling mean
+label positive rate: min 0.0064 median 0.0159 max 0.2744
+  LoRMA+ r=8 alpha=16.0 targets=('q', 'v')
+  adapted 12 projections
+  trainable 294,912 / 110,611,200 (0.267%)
+arch prefix_lm | finetune lorma | trainable 371,812/110,688,100 (0.34%)
+5344 steps/epoch x 3 = 16032 steps
+
+  ep 1 step  2000 | loss 0.1479 | macro@.5 0.1488 | global 0.2659@0.13 | per-label 0.3096 | micro 0.3339  <- best
+  ep 1 step  4000 | loss 0.1023 | macro@.5 0.1226 | global 0.2882@0.10 | per-label 0.3283 | micro 0.2717  <- best
+  ep 1 step  5344 | loss 0.0997 | macro@.5 0.1286 | global 0.2991@0.10 | per-label 0.3374 | micro 0.3069  <- best
+  ep 2 step  6000 | loss 0.0988 | macro@.5 0.1617 | global 0.2918@0.13 | per-label 0.3421 | micro 0.3457  <- best
+  ep 2 step  8000 | loss 0.0961 | macro@.5 0.2017 | global 0.3278@0.15 | per-label 0.3625 | micro 0.3909  <- best
+  ep 2 step 10000 | loss 0.0943 | macro@.5 0.1967 | global 0.3219@0.15 | per-label 0.3614 | micro 0.3769
+  ep 2 step 10688 | loss 0.0950 | macro@.5 0.1869 | global 0.3243@0.13 | per-label 0.3631 | micro 0.3758  <- best
+  ep 3 step 12000 | loss 0.0931 | macro@.5 0.2004 | global 0.3333@0.13 | per-label 0.3645 | micro 0.3768  <- best
+  ep 3 step 14000 | loss 0.0906 | macro@.5 0.2057 | global 0.3372@0.13 | per-label 0.3689 | micro 0.3877  <- best
+  ep 3 step 16000 | loss 0.0898 | macro@.5 0.2000 | global 0.3354@0.13 | per-label 0.3675 | micro 0.3816
+  ep 3 step 16032 | loss 0.0902 | macro@.5 0.2000 | global 0.3355@0.13 | per-label 0.3676 | micro 0.3814
+
+best dev macro-F1 (per-label thresholds) 0.3689

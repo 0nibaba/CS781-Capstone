@@ -1,0 +1,18 @@
+train 90 docs -> 828 blocks
+dev   10 docs -> 92 blocks   (also in training — --all_data)
+arch decoder | crf False | lorma False | trainable 110,326,285 / 110,326,285 (100.00%)
+207 steps/epoch x 10 epochs = 2070 steps
+
+  epoch   1 | train    1.6965 | macro-F1 0.5313 | acc 0.6261 | CL 0.4466 IT 0.5098  <- best
+  epoch   2 | train    1.0840 | macro-F1 0.7564 | acc 0.8277 | CL 0.8300 IT 0.6744  <- best
+  epoch   3 | train    0.5630 | macro-F1 0.8558 | acc 0.9188 | CL 0.8647 IT 0.8028  <- best
+  epoch   4 | train    0.2733 | macro-F1 0.9107 | acc 0.9556 | CL 0.9031 IT 0.8861  <- best
+  epoch   5 | train    0.1459 | macro-F1 0.9542 | acc 0.9725 | CL 0.9490 IT 0.9384  <- best
+  epoch   6 | train    0.0806 | macro-F1 0.9739 | acc 0.9832 | CL 0.9555 IT 0.9691  <- best
+  epoch   7 | train    0.0437 | macro-F1 0.9792 | acc 0.9869 | CL 0.9758 IT 0.9710  <- best
+  epoch   8 | train    0.0177 | macro-F1 0.9924 | acc 0.9953 | CL 0.9971 IT 0.9910  <- best
+  epoch   9 | train    0.0061 | macro-F1 0.9966 | acc 0.9977 | CL 0.9985 IT 0.9966  <- best
+  epoch  10 | train    0.0023 | macro-F1 0.9959 | acc 0.9967 | CL 0.9981 IT 0.9949
+
+best dev macro-F1 0.9966 at epoch 10
+reference: majority 0.029, copy-previous-gold oracle 0.754

@@ -1,0 +1,25 @@
+submission     p7_sub1
+created        2026-10-25 20:49
+phase          7 (PCR)
+checkpoint     ../checkpoints/pcr/pcr_full/ckpt_best.pt
+arch decoder | finetune full | pooling mean | hard_neg False
+dev F1@7       0.3346 (BM25@4096 0.2991, ceiling 0.6181)
+note           full fine-tune, 4-chunk max-sim, in-batch negatives, dev 0.3346
+  batch_size         16
+  checkpoint         ../checkpoints/arm_b_docmask/ckpt_best.pt
+  epochs             5
+  finetune           full
+  grad_clip          1.0
+  hard_negatives     False
+  lorma_alpha        16.0
+  lorma_r            8
+  max_lr             2e-05
+  min_lr             2e-06
+  pooling            mean
+  run_name           pcr_full
+  seed               1899
+  temp               0.05
+  tokenizer          /data1/yashy26/checkpoints/tokenizers/legal_32000.json
+  top_k_layers       4
+  warmup_frac        0.1
+  weight_decay       0.01

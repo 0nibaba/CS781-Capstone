@@ -1,0 +1,35 @@
+nohup: ignoring input
+tokenised in 29s | train docs 6528 -> 6528 pairs (chunk0)
+arch encdec | finetune full | trainable 110,318,592/110,318,592 (100.00%)
+Loading weights:   0%|          | 0/389 [00:00<?, ?it/s]Loading weights:  71%|███████   | 276/389 [00:00<00:00, 2727.35it/s]Loading weights: 100%|██████████| 389/389 [00:00<00:00, 2487.37it/s]
+[transformers] [1mRobertaModel LOAD REPORT[0m from: roberta-large
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.bias              | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.dense.bias        | UNEXPECTED | 
+pooler.dense.weight       | MISSING    | 
+pooler.dense.bias         | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+1632 steps/epoch x 3 = 4896 steps
+baseline to beat: lead-512 extraction = 0.8300 BERTScore F1
+
+  ep 1 step   500 | train 3.4305 | val 2.9408
+  ep 1 step  1000 | train 2.9211 | val 2.8974
+  ep 1 step  1500 | train 2.8745 | val 2.8736
+  ep 1 END    | val 2.8704 | BERTScore 0.7802 | gen len 483  <- best
+  ep 2 step  2000 | train 2.7038 | val 2.8736
+  ep 2 step  2500 | train 2.6334 | val 2.8719
+  ep 2 step  3000 | train 2.6692 | val 2.8637
+  ep 2 END    | val 2.8593 | BERTScore 0.7857 | gen len 484  <- best
+  ep 3 step  3500 | train 2.5434 | val 2.8773
+  ep 3 step  4000 | train 2.4621 | val 2.8795
+  ep 3 step  4500 | train 2.4343 | val 2.8766
+  ep 3 END    | val 2.8756 | BERTScore 0.7946 | gen len 482  <- best
+
+best dev BERTScore F1 0.7946  (lead-512 baseline 0.8300)

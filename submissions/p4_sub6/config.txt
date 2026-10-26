@@ -1,0 +1,29 @@
+submission     p4_sub6
+created        2026-10-22 01:55
+phase          4 (CJPE)
+checkpoint     ../checkpoints/cjpe/cjpe_distil/distilled_best.pt
+base           ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch decoder mode tail pooling last max_len 1024 decision raw
+dev macro-F1   0.6911
+note           distilled student 6/12 layers from cjpe_tail teacher (dev 0.7124)
+  alpha              0.7
+  arch               decoder
+  base_checkpoint    ../checkpoints/arm_b_docmask/ckpt_best.pt
+  batch_size         8
+  epochs             2
+  eval_every         1500
+  grad_clip          1.0
+  keep_every         2
+  max_len            1024
+  max_lr             5e-05
+  min_lr             5e-06
+  mode               tail
+  out_dir            /data1/yashy26/checkpoints/cjpe/cjpe_distil
+  pooling            last
+  run_name           cjpe_distil
+  seed               1899
+  teacher_dir        ../checkpoints/cjpe/cjpe_tail
+  temperature        2.0
+  weight_decay       0.01
+
+1517 predictions: 0 -> 741 (48.8%), 1 -> 776 (51.2%)

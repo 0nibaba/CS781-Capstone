@@ -1,0 +1,36 @@
+train 80 docs -> 1321 blocks
+dev   10 docs -> 166 blocks
+arch decoder | crf False | lorma False | trainable 110,326,285 / 110,326,285 (100.00%)
+331 steps/epoch x 12 epochs = 3972 steps
+
+  epoch   1 | train    1.5597 | macro-F1 0.4490 | acc 0.5504 | CL 0.3679 IT 0.4735  <- best
+  epoch   2 | train    0.8799 | macro-F1 0.4446 | acc 0.6036 | CL 0.4106 IT 0.4857
+  epoch   3 | train    0.4142 | macro-F1 0.5396 | acc 0.6186 | CL 0.4770 IT 0.5244  <- best
+  epoch   4 | train    0.2332 | macro-F1 0.5228 | acc 0.6041 | CL 0.4489 IT 0.5134
+  epoch   5 | train    0.1528 | macro-F1 0.5555 | acc 0.6261 | CL 0.4678 IT 0.5644  <- best
+  epoch   6 | train    0.0984 | macro-F1 0.5894 | acc 0.6522 | CL 0.5249 IT 0.5891  <- best
+  epoch   7 | train    0.0489 | macro-F1 0.5263 | acc 0.6555 | CL 0.4314 IT 0.5478
+  epoch   8 | train    0.0300 | macro-F1 0.5382 | acc 0.6522 | CL 0.4474 IT 0.6001
+  epoch   9 | train    0.0124 | macro-F1 0.5553 | acc 0.6690 | CL 0.4881 IT 0.5857
+  epoch  10 | train    0.0032 | macro-F1 0.5619 | acc 0.6769 | CL 0.4939 IT 0.5972
+  epoch  11 | train    0.0014 | macro-F1 0.5587 | acc 0.6727 | CL 0.4979 IT 0.5849
+  epoch  12 | train    0.0003 | macro-F1 0.5665 | acc 0.6821 | CL 0.5008 IT 0.6065
+
+best dev macro-F1 0.5894 at epoch 6
+reference: majority 0.029, copy-previous-gold oracle 0.754
+
+best epoch
+  macro-F1 0.5894  (P 0.6781 / R 0.5628)   accuracy 0.6522   labels scored 11/13
+  label                          P       R      F1     tp     fp     fn
+  --------------------------------------------------------------------
+  None                      0.6364  0.2121  0.3182      7      4     26
+  PrecedentNotReliedUpon    0.2824  0.4800  0.3556     24     61     26
+  PrecedentReliedUpon       0.7143  0.3740  0.4910     95     38    159
+  RulingByPresentCourt      0.5952  0.5102  0.5495     25     17     24
+  RulingByLowerCourt        0.7903  0.4804  0.5976     49     13     53
+  ArgumentPetitioner        0.7815  0.5275  0.6299    211     59    189
+  Issue                     0.8000  0.5333  0.6400      8      2      7
+  RatioOfTheDecision        0.5275  0.9032  0.6661    364    326     39
+  ArgumentRespondent        0.6859  0.6985  0.6922    190     87     82
+  Fact                      0.7213  0.7635  0.7418    339    131    105
+  Statute                   0.9239  0.7083  0.8019     85      7     35

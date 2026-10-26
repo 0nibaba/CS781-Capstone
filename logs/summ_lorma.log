@@ -1,0 +1,50 @@
+tokenised in 29s | train docs 6528 -> 6528 pairs (chunk0)
+  LoRMA+ r=8 alpha=16.0 targets=('q', 'v')
+  adapted 12 projections
+  trainable 294,912 / 110,611,200 (0.267%)
+arch prefix_lm | finetune lorma | trainable 294,912/110,611,200 (0.27%)
+Loading weights:   0%|          | 0/389 [00:00<?, ?it/s]Loading weights:  80%|███████▉  | 311/389 [00:00<00:00, 3047.71it/s]Loading weights: 100%|██████████| 389/389 [00:00<00:00, 2966.62it/s]
+[transformers] [1mRobertaModel LOAD REPORT[0m from: roberta-large
+Key                       | Status     | 
+--------------------------+------------+-
+lm_head.dense.bias        | UNEXPECTED | 
+lm_head.dense.weight      | UNEXPECTED | 
+lm_head.layer_norm.weight | UNEXPECTED | 
+lm_head.layer_norm.bias   | UNEXPECTED | 
+lm_head.bias              | UNEXPECTED | 
+pooler.dense.bias         | MISSING    | 
+pooler.dense.weight       | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+1632 steps/epoch x 6 = 9792 steps
+baseline to beat: lead-512 extraction = 0.8300 BERTScore F1
+
+  ep 1 step   500 | train 2.5571 | val 2.3455
+  ep 1 step  1000 | train 2.2758 | val 2.2952
+  ep 1 step  1500 | train 2.2180 | val 2.2707
+  ep 1 END    | val 2.2657 | BERTScore 0.7778 | gen len 533  <- best
+  ep 2 step  2000 | train 2.2001 | val 2.2572
+  ep 2 step  2500 | train 2.1717 | val 2.2466
+  ep 2 step  3000 | train 2.1929 | val 2.2393
+  ep 2 END    | val 2.2396 | BERTScore 0.7782 | gen len 497  <- best
+  ep 3 step  3500 | train 2.1594 | val 2.2348
+  ep 3 step  4000 | train 2.1614 | val 2.2321
+  ep 3 step  4500 | train 2.1523 | val 2.2264
+  ep 3 END    | val 2.2250 | BERTScore 0.7851 | gen len 489  <- best
+  ep 4 step  5000 | train 2.1412 | val 2.2241
+  ep 4 step  5500 | train 2.1286 | val 2.2208
+  ep 4 step  6000 | train 2.1296 | val 2.2192
+  ep 4 step  6500 | train 2.1239 | val 2.2168
+  ep 4 END    | val 2.2176 | BERTScore 0.7877 | gen len 486  <- best
+  ep 5 step  7000 | train 2.0941 | val 2.2171
+  ep 5 step  7500 | train 2.1017 | val 2.2151
+  ep 5 step  8000 | train 2.1333 | val 2.2139
+  ep 5 END    | val 2.2135 | BERTScore 0.7895 | gen len 484  <- best
+  ep 6 step  8500 | train 2.1205 | val 2.2146
+  ep 6 step  9000 | train 2.1089 | val 2.2144
+  ep 6 step  9500 | train 2.1066 | val 2.2141
+  ep 6 END    | val 2.2142 | BERTScore 0.7855 | gen len 485
+
+best dev BERTScore F1 0.7895  (lead-512 baseline 0.8300)

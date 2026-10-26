@@ -1,0 +1,15 @@
+tokenised in 44s | train 827 queries / 4320 candidates | dev 118 / 1023
+5308 (query, positive) pairs
+arch efficient | finetune top_k | pooling mean | hard_neg False | trainable 28,317,696/110,316,288 (25.67%)
+
+dev ceiling F1 0.6181 | BM25@4096 0.2991 | zero-shot dense 0.1946
+
+  epoch 0 (untrained) | F1@7 0.2535
+  epoch 1 | loss 1.3679 | F1@7 0.3002 | P 0.3269 R 0.2775  <- best
+  epoch 2 | loss 1.0924 | F1@7 0.3046 | P 0.3317 R 0.2816  <- best
+  epoch 3 | loss 0.9494 | F1@7 0.3113 | P 0.3390 R 0.2878  <- best
+  epoch 4 | loss 0.7882 | F1@7 0.3135 | P 0.3414 R 0.2898  <- best
+  epoch 5 | loss 0.6817 | F1@7 0.3146 | P 0.3426 R 0.2909  <- best
+  epoch 6 | loss 0.6131 | F1@7 0.3168 | P 0.3450 R 0.2929  <- best
+
+best dev F1@7 0.3168  (BM25@4096 0.2991, ceiling 0.6181)

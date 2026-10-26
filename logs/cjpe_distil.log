@@ -1,0 +1,34 @@
+nohup: ignoring input
+teacher geometry: mode=tail pooling=last max_len=1024
+train 37387 | dev 1988
+teacher: 110,317,826 params, 12 layers, dev 0.7124
+student: 67,841,282 params (61.5%), 6 layers
+
+------------------------------------------------------------------
+distilled: WITH distillation
+------------------------------------------------------------------
+  ep 1 step  1500 | hard 0.5265 | kd 0.1826 | macro-F1 0.6152 | +prior 0.6507 | pred1 0.269  <- best
+  ep 1 step  3000 | hard 0.4699 | kd 0.1365 | macro-F1 0.6134 | +prior 0.6661 | pred1 0.233  <- best
+  ep 1 step  4500 | hard 0.4552 | kd 0.1183 | macro-F1 0.6911 | +prior 0.6550 | pred1 0.513  <- best
+  ep 2 step  6000 | hard 0.3657 | kd 0.0811 | macro-F1 0.6079 | +prior 0.5679 | pred1 0.781
+  ep 2 step  7500 | hard 0.3990 | kd 0.0529 | macro-F1 0.6825 | +prior 0.6617 | pred1 0.543
+  ep 2 step  9000 | hard 0.3932 | kd 0.0436 | macro-F1 0.6761 | +prior 0.6389 | pred1 0.596
+  best 0.6911 (raw)
+
+------------------------------------------------------------------
+hard_only: WITHOUT distillation
+------------------------------------------------------------------
+  ep 1 step  1500 | hard 0.5577 | kd 0.0000 | macro-F1 0.6090 | +prior 0.6447 | pred1 0.233  <- best
+  ep 1 step  3000 | hard 0.5159 | kd 0.0000 | macro-F1 0.6340 | +prior 0.6557 | pred1 0.249  <- best
+  ep 1 step  4500 | hard 0.4956 | kd 0.0000 | macro-F1 0.4885 | +prior 0.4264 | pred1 0.872
+  ep 2 step  6000 | hard 0.4025 | kd 0.0000 | macro-F1 0.3748 | +prior 0.3672 | pred1 0.967
+  ep 2 step  7500 | hard 0.3933 | kd 0.0000 | macro-F1 0.3873 | +prior 0.3702 | pred1 0.957
+  ep 2 step  9000 | hard 0.3768 | kd 0.0000 | macro-F1 0.3620 | +prior 0.3635 | pred1 0.972
+  best 0.6557 (adj)
+
+==================================================================
+  teacher            0.7124
+  student, distilled 0.6911
+  student, hard only 0.6557
+  distillation effect: +0.0354
+  retained: 97.0% at 61% of parameters

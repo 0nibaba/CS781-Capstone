@@ -1,0 +1,8 @@
+checkpoint: ../checkpoints/arch4_encdec/ckpt_best.pt
+arch: encdec
+step: 5700
+val_loss: 2.4309351472854615
+test_file: /data1/yashy26/test_data/Phase_1_Pretraining/Test/test.json
+decoding: T0.8 p0.95 k0 rp1.1 eosoff seed0
+mean_words: 128.0
+short: 3

@@ -1,0 +1,15 @@
+tokenised in 43s | train 827 queries / 4320 candidates | dev 118 / 1023
+mined BM25 hard negatives in 407s (20.0/query)
+5308 (query, positive) pairs
+arch decoder | finetune full | pooling mean | hard_neg True | trainable 110,316,288/110,316,288 (100.00%)
+
+dev ceiling F1 0.6181 | BM25@4096 0.2991 | zero-shot dense 0.1946
+
+  epoch 0 (untrained) | F1@7 0.2557
+  epoch 1 | loss 1.7511 | F1@7 0.3246 | P 0.3535 R 0.3001  <- best
+  epoch 2 | loss 1.4757 | F1@7 0.3157 | P 0.3438 R 0.2919
+  epoch 3 | loss 1.2892 | F1@7 0.3235 | P 0.3523 R 0.2991
+  epoch 4 | loss 1.1230 | F1@7 0.3124 | P 0.3402 R 0.2888
+  epoch 5 | loss 1.0309 | F1@7 0.3191 | P 0.3475 R 0.2950
+
+best dev F1@7 0.3246  (BM25@4096 0.2991, ceiling 0.6181)

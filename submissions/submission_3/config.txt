@@ -1,0 +1,8 @@
+checkpoint: ../checkpoints/arch2_prefix_3B/ckpt_best.pt
+arch: prefix_lm
+step: 11400
+val_loss: 1.655975908279419
+test_file: /data1/yashy26/test_data/Phase_1_Pretraining/Test/test.json
+decoding: T0.8 p0.95 k0 rp1.1 eosoff seed0
+mean_words: 127.6
+short: 17

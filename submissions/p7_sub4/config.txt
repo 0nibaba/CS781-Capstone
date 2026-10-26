@@ -1,0 +1,22 @@
+submission     p7_sub4
+created        2026-10-25 22:14
+phase          7 (PCR)
+checkpoint     ../checkpoints/pcr/pcr_distil/distilled_best.pt
+arch decoder | finetune None | pooling None | hard_neg None
+dev F1@7       0.3157 (BM25@4096 0.2991, ceiling 0.6181)
+note           distilled 6/12-layer student from pcr_full, similarity-KL, dev 0.3157, 61.5% params
+  alpha              0.7
+  base_checkpoint    ../checkpoints/arm_b_docmask/ckpt_best.pt
+  batch_size         16
+  epochs             6
+  grad_clip          1.0
+  keep_every         2
+  max_lr             5e-05
+  min_lr             5e-06
+  out_dir            /data1/yashy26/checkpoints/pcr/pcr_distil
+  run_name           pcr_distil
+  seed               1899
+  teacher_dir        ../checkpoints/pcr/pcr_full
+  temp               0.05
+  temperature        0.1
+  weight_decay       0.01

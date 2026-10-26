@@ -1,0 +1,33 @@
+nohup: ignoring input
+train 42750 | dev 10181 | mode head
+teacher: 110,393,188 params, dev 0.4004
+student: 67,916,644 params (61.5%), 6 layers
+
+------------------------------------------------------------------
+distilled: WITH distillation
+------------------------------------------------------------------
+  ep 1 step  2500 | hard 0.0862 | kd 1.0099 | macro@.5 0.2169 | per-label 0.3732  <- best
+  ep 1 step  5000 | hard 0.0828 | kd 1.0014 | macro@.5 0.2348 | per-label 0.3845  <- best
+  ep 2 step  7500 | hard 0.0765 | kd 0.9945 | macro@.5 0.2664 | per-label 0.3919  <- best
+  ep 2 step 10000 | hard 0.0737 | kd 0.9895 | macro@.5 0.2540 | per-label 0.3961  <- best
+  ep 3 step 12500 | hard 0.0691 | kd 0.9865 | macro@.5 0.2609 | per-label 0.4010  <- best
+  ep 3 step 15000 | hard 0.0661 | kd 0.9828 | macro@.5 0.2680 | per-label 0.4030  <- best
+  best 0.4030
+
+------------------------------------------------------------------
+hard_only: WITHOUT distillation
+------------------------------------------------------------------
+  ep 1 step  2500 | hard 0.0905 | kd 0.0000 | macro@.5 0.1897 | per-label 0.3526  <- best
+  ep 1 step  5000 | hard 0.0882 | kd 0.0000 | macro@.5 0.2154 | per-label 0.3692  <- best
+  ep 2 step  7500 | hard 0.0774 | kd 0.0000 | macro@.5 0.2841 | per-label 0.3844  <- best
+  ep 2 step 10000 | hard 0.0734 | kd 0.0000 | macro@.5 0.2779 | per-label 0.3899  <- best
+  ep 3 step 12500 | hard 0.0610 | kd 0.0000 | macro@.5 0.2970 | per-label 0.3933  <- best
+  ep 3 step 15000 | hard 0.0545 | kd 0.0000 | macro@.5 0.2928 | per-label 0.3947  <- best
+  best 0.3947
+
+==================================================================
+  teacher            0.4004
+  student, distilled 0.4030
+  student, hard only 0.3947
+  distillation effect: +0.0083
+  retained: 100.7% at 62% of parameters

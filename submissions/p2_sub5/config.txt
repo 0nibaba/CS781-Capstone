@@ -1,0 +1,7 @@
+checkpoint: ../checkpoints/ner/distil_decoder_all/ckpt_final.pt
+base: ../checkpoints/arm_b_docmask/ckpt_best.pt
+arch: decoder
+crf: None
+position: None
+decode: lenient=False bridge=3 min_chars=3
+entities: 3264

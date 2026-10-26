@@ -2,7 +2,9 @@ venv/
 training_data/
 test_data/
 checkpoints/
-submissions/
+submissions/*
+!submissions/*/
+!submissions/*/config.txt
 __pycache__/
 *.pyc
 .cache/

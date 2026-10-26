@@ -8,15 +8,20 @@ from tokenizers import Tokenizer
 
 from decoder_only_transformer import GPT, ModelConfig
 from local_eval import generate, truncate_words
+from prefix_gpt import PrefixGPT
+from prefix_lm import PrefixModelConfig
+from efficient_attn import EfficientModelConfig, EfficientGPT
+from encoder_decoder import EncDecConfig, EncoderDecoder
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def generate_submission(model, tokenizer, test_data, cfg, device, eos_id):
+def generate_submission(model, tokenizer, test_data, cfg, device, eos_id, sentinel_id = None):
     ids = list(test_data.keys())
     preds = {}
     word_counts = []
     bs = cfg["batch_size"]
+    is_encdec = cfg.get("arch") == "encdec"
 
     for i in tqdm(range(0, len(ids), bs), desc="generating"):
         b_ids = ids[i:i + bs]
@@ -26,10 +31,17 @@ def generate_submission(model, tokenizer, test_data, cfg, device, eos_id):
         limit = cfg["block_size"] - cfg["max_new_tokens"]
         encs = [e[-limit:] for e in encs]
 
+        if is_encdec:
+            encs = [e + [sentinel_id] for e in encs]
+
         width = max(len(e) for e in encs)
         pad_id = eos_id if eos_id is not None else 0
-        padded = [[pad_id] * (width - len(e)) + e for e in encs]
-        mask = [[0] * (width - len(e)) + [1] * len(e) for e in encs]
+        if is_encdec:
+            padded = [e + [pad_id] * (width - len(e)) for e in encs]   # RIGHT pad
+            mask = [[1] * len(e) + [0] * (width - len(e)) for e in encs]
+        else:
+            padded = [[pad_id] * (width - len(e)) + e for e in encs]   # LEFT pad
+            mask = [[0] * (width - len(e)) + [1] * len(e) for e in encs]
 
         x = torch.tensor(padded, dtype=torch.long, device=device)
         m = torch.tensor(mask, dtype=torch.long, device=device)
@@ -38,6 +50,8 @@ def generate_submission(model, tokenizer, test_data, cfg, device, eos_id):
 
         for j, k in enumerate(b_ids):
             seq = gen[j].tolist()
+            if is_encdec and seq and seq[0] == sentinel_id:
+                seq = seq[1:]
             if eos_id is not None and eos_id in seq:
                 seq = seq[:seq.index(eos_id)]
             trunc = truncate_words(tokenizer.decode(seq), 128)
@@ -73,6 +87,7 @@ if __name__ == "__main__":
 
     tokenizer = Tokenizer.from_file(args.tokenizer)
     eos_id = tokenizer.token_to_id("<|endoftext|>")
+    sentinel_id = tokenizer.token_to_id("<|unused0|>")
 
     with open(args.test_file) as f:
         test_data = json.load(f)
@@ -89,19 +104,30 @@ if __name__ == "__main__":
 
     print(f"loading {args.checkpoint}")
     ck = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-    model = GPT(ModelConfig(**ck["config"]))
+    arch = ck.get("arch", "decoder")
+    if arch == "decoder":
+        model = GPT(ModelConfig(**ck["config"]))
+    elif arch == "prefix_lm":
+        model = PrefixGPT(PrefixModelConfig(**ck["config"]))
+    elif arch == "efficient":
+        model = EfficientGPT(EfficientModelConfig(**ck["config"]))
+    elif arch == "encdec":
+        model = EncoderDecoder(EncDecConfig(**ck["config"]))
+    else:
+        raise ValueError(f"unknown arch: {arch}")
     model.load_state_dict(ck["model"])
     model.to(device).eval()
     print(f"  step {ck['step']}, val_loss {ck['best_val_loss']:.4f}")
 
     cfg = {
+        "arch": arch,
         "temperature": args.temp, "top_p": args.top_p, "top_k": args.top_k,
         "repetition_penalty": args.rep_penalty, "suppress_eos": not args.allow_eos,
         "batch_size": args.batch_size, "block_size": args.block_size,
         "max_new_tokens": args.max_new_tokens,
     }
 
-    preds, wc = generate_submission(model, tokenizer, test_data, cfg, device, eos_id)
+    preds, wc = generate_submission(model, tokenizer, test_data, cfg, device, eos_id, sentinel_id)
 
     print("\nvalidating...")
     missing = set(test_data) - set(preds)
@@ -137,9 +163,14 @@ if __name__ == "__main__":
     cfg_str = (f"T{args.temp} p{args.top_p} k{args.top_k} rp{args.rep_penalty} "
                f"eos{'on' if args.allow_eos else 'off'} seed{args.seed}")
     with open(os.path.join(out_dir, "config.txt"), "w") as f:
-        f.write(f"checkpoint: {args.checkpoint}\nstep: {ck['step']}\n"
-                f"val_loss: {ck['best_val_loss']}\ndecoding: {cfg_str}\n"
-                f"mean_words: {sum(wc)/len(wc):.1f}\nshort: {short}\n")
+        f.write(f"checkpoint: {args.checkpoint}\n"
+                f"arch: {arch}\n"
+                f"step: {ck['step']}\n"
+                f"val_loss: {ck['best_val_loss']}\n"
+                f"test_file: {args.test_file}\n"
+                f"decoding: {cfg_str}\n"
+                f"mean_words: {sum(wc)/len(wc):.1f}\n"
+                f"short: {short}\n")
 
     print(f"\n-> {zip_path}")
     print(f"   json kept at {pred_path}")
