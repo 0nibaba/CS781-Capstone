@@ -17,7 +17,7 @@ Phase-1 checkpoint trained in this repository.
 | 7 | Prior case retrieval | micro-F1@7 | **0.2965** | reciprocal-rank fusion of 4 dense rankers |
 
 The full experimental record, including predictions registered *before* runs and
-the eight that were refuted, is in [`DECISIONS.md`](DECISIONS.md).
+the eight that were refuted, is in [`logs/DECISIONS.md`](DECISIONS.md).
 
 ---
 
