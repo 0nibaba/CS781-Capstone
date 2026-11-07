@@ -573,11 +573,3 @@ roughly 0.03 and varies per run. Treat every Phase-3 comparison as weak evidence
 near-duplicate check in `check_ordering.py` is an adjacency search rather than
 MinHash. `bert-score` works only because `roberta-large` is already in the local
 HuggingFace cache.
-
----
-
-## Report
-
-The full write-up, including the experimental methodology and the eight
-pre-registered predictions that were refuted, is in `report/`. The running
-decision log is [`decisions.md`](decisions.md).
