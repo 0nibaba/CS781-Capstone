@@ -1,23 +1,3 @@
-"""
-Can the Phase-1 tokenizer represent the gold spans exactly?
-
-Strict evaluation means a one-character shift scores zero, so before any
-modelling we need to know the CEILING: what fraction of gold spans survive a
-round trip character offsets -> token indices -> character offsets.
-
-The subtlety is byte-level BPE's leading-space convention. In "in the court",
-the token for " the" spans characters 2-5 INCLUDING the space. If a gold
-entity starts at character 3 ("the"), no token boundary falls there. Three
-conventions are compared:
-
-  strict   - the entity must align to token boundaries exactly
-  expand   - take every token the span touches (boundaries may move outward)
-  trim     - as expand, but strip leading/trailing whitespace afterwards
-
-Whichever recovers the most spans is the one to build the model around. The
-loss is a hard ceiling on achievable F1, independent of the model.
-"""
-
 import os
 import json
 from collections import Counter, defaultdict
@@ -37,14 +17,12 @@ def load(name):
 
 
 def char_span_to_tokens(offsets, start, end):
-    """Token indices [i, j) whose character ranges overlap [start, end)."""
     idx = [k for k, (s, e) in enumerate(offsets)
            if s < end and e > start and e > s]
     return (idx[0], idx[-1] + 1) if idx else None
 
 
 def tokens_to_char_span(offsets, i, j, text, mode):
-    """Convert token range back to a character span under one convention."""
     s, e = offsets[i][0], offsets[j - 1][1]
     if mode in ("trim", "trim_punct"):
         while s < e and text[s].isspace():
@@ -52,9 +30,6 @@ def tokens_to_char_span(offsets, i, j, text, mode):
         while e > s and text[e - 1].isspace():
             e -= 1
     if mode == "trim_punct":
-        # BPE folds trailing punctuation into the final token of a span
-        # ('Ors.' -> 'Ors.[', 'SCC 47]' -> 'SCC 47].'). Strip it back off,
-        # then re-trim whitespace that stripping may have exposed.
         while e > s and text[e - 1] in TRAILING_PUNCT:
             e -= 1
         while e > s and text[e - 1].isspace():
@@ -152,7 +127,6 @@ def main():
         print(f"  {lab:<10} gold [{gs},{ge}] {gold_t!r}")
         print(f"             got  [{ps},{pe}] {pred_t!r}")
 
-    # what kinds of boundary does the tokenizer struggle with?
     print(f"\n{'=' * 72}")
     print("failure shapes")
     print(f"{'=' * 72}")

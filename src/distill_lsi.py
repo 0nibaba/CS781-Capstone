@@ -1,15 +1,3 @@
-"""Knowledge distillation for LSI (compulsory).
-
-Teacher: lsi_full3 (decoder, full fine-tune, dev 0.4004).
-Student: every other layer (6/12), head copied.
-
-Multi-label distillation is per-label binary: the soft target is the teacher's
-sigmoid probability for each of the 100 statutes, matched with BCE. That gives
-the student 100 graded targets per document rather than CJPE's single one --
-so if the Phase 4 account is right (the KL term is a regulariser whose value
-scales with the density of supervision), the effect here should be at least as
-large as CJPE's +0.0354. Registered before running.
-"""
 import os, copy, json, argparse
 
 import numpy as np

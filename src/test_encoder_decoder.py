@@ -22,8 +22,8 @@ def test_cross_attention_shapes():
     print("--- 2. cross-attention with T_enc != T_dec ---")
     cfg = EncDecConfig(d_model=64, n_head=4)
     ca = CrossAttention(cfg).eval()
-    x = torch.randn(2, 7, 64)          # decoder
-    e = torch.randn(2, 13, 64)         # encoder, different length
+    x = torch.randn(2, 7, 64)
+    e = torch.randn(2, 13, 64)
     with torch.no_grad():
         y = ca(x, e)
     print(f"  dec {tuple(x.shape)} x enc {tuple(e.shape)} -> {tuple(y.shape)}")
@@ -41,12 +41,12 @@ def test_encoder_padding():
     enc = torch.randint(1, 1000, (1, 10))
     dec = torch.randint(1, 1000, (1, 6))
     pad = torch.ones(1, 10, dtype=torch.long)
-    pad[0, 7:] = 0                              # last 3 are padding
+    pad[0, 7:] = 0
 
     with torch.no_grad():
         a = m.decode(dec, m.encode(enc, pad), pad)
         enc2 = enc.clone()
-        enc2[0, 7:] = torch.randint(1, 1000, (3,))   # change the pads
+        enc2[0, 7:] = torch.randint(1, 1000, (3,))
         b = m.decode(dec, m.encode(enc2, pad), pad)
 
     d = (a - b).abs().max().item()
@@ -68,7 +68,7 @@ def test_decoder_causality():
         eo = m.encode(enc)
         a = m.decode(dec, eo)
         dec2 = dec.clone()
-        dec2[0, 6] = (dec2[0, 6] + 7) % 1000     # change a LATE decoder token
+        dec2[0, 6] = (dec2[0, 6] + 7) % 1000
         b = m.decode(dec2, eo)
 
     early = (a[0, :6] - b[0, :6]).abs().max().item()

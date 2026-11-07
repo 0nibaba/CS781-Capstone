@@ -1,25 +1,9 @@
-"""
-Sentence classifier over a Phase 1 model, with an optional CRF over the
-document's label sequence.
-
-Sentence representations are taken from the separator token appended after
-each sentence. For a causal model that token has read the whole sentence plus
-everything before it; for a bidirectional one it sees the document both ways.
-Mean-pooling over each sentence's own tokens is available as an alternative,
-since the brief asks about sentence representations.
-
-The CRF is unconstrained: unlike BIO in Phase 2, every rhetorical-role
-transition is structurally possible. Its value here comes from the 94% / 75%
-self-transition rate, which independent per-sentence classification cannot
-exploit at all.
-"""
-
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
 from crf import CRF
-from ner_model import load_base          # arch dispatch, reused from Phase 2
+from ner_model import load_base
 from rr_data import N_LABELS, IGNORE
 
 
@@ -43,7 +27,6 @@ class SentenceClassifier(nn.Module):
         B, T = input_ids.size()
 
         if self.arch == "prefix_lm":
-            # whole block as prefix -> fully bidirectional
             splits = torch.full((B,), T, dtype=torch.long,
                                 device=input_ids.device)
             return self.base(input_ids, attn_mask=attn_mask,
@@ -60,14 +43,12 @@ class SentenceClassifier(nn.Module):
     def forward(self, input_ids, attn_mask, marker_pos, marker_mask,
                 labels=None, class_weights=None):
         h = self.hidden(input_ids, attn_mask)
-        s = self.sentence_vectors(h, marker_pos)        # (B, S, d)
-        logits = self.head(self.dropout(s))             # (B, S, n_labels)
+        s = self.sentence_vectors(h, marker_pos)
+        logits = self.head(self.dropout(s))
 
         loss = None
         if labels is not None:
             if self.use_crf:
-                # the CRF cannot skip positions mid-sequence, so padded slots
-                # are given label 0 and excluded through the mask instead
                 m = marker_mask.bool() & (labels != IGNORE)
                 safe = labels.masked_fill(~m, 0)
                 loss = self.crf(logits.float(), safe, m)
@@ -82,7 +63,6 @@ class SentenceClassifier(nn.Module):
 
     @torch.no_grad()
     def decode(self, logits, marker_mask):
-        """Per-block label sequences, as a list of lists."""
         if self.use_crf:
             return self.crf.viterbi(logits.float(), marker_mask)
         pred = logits.argmax(-1).cpu()
@@ -94,8 +74,6 @@ class SentenceClassifier(nn.Module):
         a = sum(p.numel() for p in self.parameters())
         return t, a
 
-
-# ---------------- tests ----------------
 
 if __name__ == "__main__":
     import os
@@ -137,7 +115,6 @@ if __name__ == "__main__":
     with torch.no_grad():
         h = m.hidden(ids, msk)
         s = m.sentence_vectors(h, pos)
-    # vector j must equal the hidden state at marker position j
     b, j = 0, 3
     same = torch.allclose(s[b, j], h[b, pos[b, j]])
     print(f"  gathered vector matches h at its marker position: {same}")

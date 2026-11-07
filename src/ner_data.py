@@ -1,14 +1,3 @@
-"""
-Dataset and batching for L-NER.
-
-Each document becomes ~12 overlapping 1024-token windows (see windowing.py).
-A window is one training example. Padding is labelled IGNORE so it does not
-contribute to the loss, and context regions outside a window's keep span are
-still TRAINED on — only PREDICTION is restricted to the keep region. Training
-on the full window gives more signal per example and costs nothing, since the
-merge step at inference discards the margins anyway.
-"""
-
 import os
 import json
 import random
@@ -25,11 +14,10 @@ TEST_DIR = os.path.join(ROOT, "test_data/Phase_2_LNER/Test")
 TOKENIZER = os.path.join(ROOT, "checkpoints/tokenizers/legal_32000.json")
 
 IGNORE = -100
-PAD_ID = 0          # <|endoftext|>; masked out anyway
+PAD_ID = 0
 
 
 def load_fold(fold):
-    """fold in {fold1, fold2, fold3}. fold3 has no gold."""
     if fold == "fold3":
         with open(os.path.join(TEST_DIR, "fold3-text.json")) as f:
             return json.load(f), None
@@ -41,7 +29,6 @@ def load_fold(fold):
 
 
 class NERWindows:
-    """Flattened list of windows across a set of documents."""
 
     def __init__(self, docs, gold, tok, window=WINDOW, stride=STRIDE):
         self.items = []
@@ -83,7 +70,6 @@ def collate(items, device):
         ids[i, :n] = torch.tensor(it["input_ids"], dtype=torch.long)
         msk[i, :n] = 1
         lab[i, :n] = torch.tensor(it["labels"], dtype=torch.long)
-        # position within the DOCUMENT, which the window alone cannot convey
         start, total = it["tok_start"], max(1, it["n_tokens"])
         pos[i, :n] = (torch.arange(n, dtype=torch.float) + start) / total
 
@@ -103,13 +89,6 @@ def batches(ds, batch_size, device, shuffle=True, seed=None):
 
 
 def class_weights(ds, n_tags, device, scheme="inv_sqrt"):
-    """
-    O is ~90.7% of tokens and B-R.COUNSEL ~0.04%. Under macro-F1 every label
-    counts equally, so unweighted cross-entropy systematically favours O.
-
-    inv_sqrt is a middle course between unweighted and full inverse frequency,
-    which over-corrects and destabilises training on rare tags.
-    """
     counts = torch.zeros(n_tags)
     for it in ds.items:
         for t in it["labels"]:

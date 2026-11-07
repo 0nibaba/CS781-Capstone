@@ -1,17 +1,3 @@
-"""
-BIO tagging for L-NER, and its inverse.
-
-The decode must invert the encode exactly, or the 98.18% alignment ceiling
-measured in test_alignment.py is lost on top. The round-trip test at the
-bottom checks precisely that: gold spans -> BIO tags -> decoded spans should
-recover 8,240 / 8,393, no fewer.
-
-Two decoding conventions for malformed sequences are compared, since models
-will emit I-X without a preceding B-X:
-  strict  - an orphan I-X is dropped
-  lenient - an orphan I-X starts a new entity
-"""
-
 import os
 import json
 from collections import Counter, defaultdict
@@ -31,18 +17,14 @@ ID2TAG = {i: t for t, i in TAG2ID.items()}
 O_ID = TAG2ID["O"]
 
 
-# ---------- alignment (same convention as test_alignment.py) ----------
 
 def char_span_to_tokens(offsets, start, end):
-    """Token indices [i, j) whose character ranges overlap [start, end)."""
     idx = [k for k, (s, e) in enumerate(offsets)
            if s < end and e > start and e > s]
     return (idx[0], idx[-1] + 1) if idx else None
 
 
 def tokens_to_char_span(offsets, i, j, text):
-    """Token range -> character span, trimming whitespace. This is the 'trim'
-    convention, measured at 98.18% exact recovery."""
     s, e = offsets[i][0], offsets[j - 1][1]
     while s < e and text[s].isspace():
         s += 1
@@ -51,18 +33,10 @@ def tokens_to_char_span(offsets, i, j, text):
     return s, e
 
 
-# ---------- encode ----------
-
 def spans_to_bio(entities, offsets, n_tokens):
-    """
-    entities: list of [start, end, label, ...]
-    Returns (tag_ids, n_dropped). An entity is dropped only if it maps to no
-    token at all, or if its tokens are already claimed by an earlier entity.
-    """
     tags = [O_ID] * n_tokens
     dropped = 0
 
-    # longest first, so a short entity cannot steal tokens from a long one
     for ent in sorted(entities, key=lambda e: e[0] - e[1]):
         tr = char_span_to_tokens(offsets, ent[0], ent[1])
         if tr is None:
@@ -70,15 +44,13 @@ def spans_to_bio(entities, offsets, n_tokens):
             continue
         i, j = tr
         if any(tags[k] != O_ID for k in range(i, j)):
-            dropped += 1          # overlaps something already tagged
+            dropped += 1
             continue
         tags[i] = TAG2ID[f"B-{ent[2]}"]
         for k in range(i + 1, j):
             tags[k] = TAG2ID[f"I-{ent[2]}"]
     return tags, dropped
 
-
-# ---------- decode ----------
 
 def bio_to_spans(tag_ids, offsets, text, lenient=True):
     """Returns [[start, end, label], ...] in document order."""
@@ -103,8 +75,6 @@ def bio_to_spans(tag_ids, offsets, text, lenient=True):
         i = j
     return out
 
-
-# ---------- tests ----------
 
 def load(name):
     with open(os.path.join(TRAIN, name)) as f:
@@ -138,7 +108,6 @@ def main():
         dropped_enc += d
         tag_counts.update(ID2TAG[t] for t in tags)
 
-        # entities of the same label sharing a token boundary would merge
         order = sorted([e for e in ents], key=lambda e: e[0])
         for a, b in zip(order, order[1:]):
             if a[2] == b[2]:

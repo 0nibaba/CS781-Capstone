@@ -1,4 +1,3 @@
-"""Phase 4 submission: [{"id": ..., "pred": 0|1}, ...] one per test case."""
 import os, json, argparse, zipfile, datetime
 from collections import Counter
 
@@ -63,7 +62,7 @@ def main():
     model = model.to(device).eval()
 
     docs = load_split("test")
-    assert all("label" not in d for d in docs), "test labels must not be used"
+    assert all("label" not in d for d in docs),
     tok = Tokenizer.from_file(args.tokenizer)
     ds = CJPEDocs(docs, tok, mode=mode, max_len=max_len)
     print(f"test {len(ds)} cases")

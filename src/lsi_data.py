@@ -1,9 +1,3 @@
-"""LSI data: documents -> multi-hot over 100 statutes.
-
-Median document is 643 train / 804 dev tokens and 61% fit in a 1024-token
-window, so truncation is a minority concern here -- unlike CJPE, where only 20%
-of cases fit.
-"""
 import os, json
 import torch
 

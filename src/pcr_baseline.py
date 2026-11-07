@@ -1,10 +1,3 @@
-"""Floors for PCR: lexical BM25 and zero-shot Phase 1 embeddings.
-
-Legal case retrieval is notoriously hard to beat with dense models -- long
-documents, topical rather than semantic relevance, heavy shared boilerplate.
-BM25 is the control that tells us whether a trained bi-encoder is earning its
-keep. Perfect-ranking ceiling on dev is micro-F1 0.6181; random is 0.0068.
-"""
 import os, json, math, argparse
 from collections import Counter
 
@@ -63,8 +56,6 @@ def ceiling(queries, k=7):
     return 2 * p * r / (p + r), p, r
 
 
-# ---------------- BM25 ----------------
-
 def bm25_rank(queries, cands, tok, k1=1.2, b=0.75, max_tokens=0):
     def toks(t):
         ids = tok.encode(t).ids
@@ -101,12 +92,10 @@ def bm25_rank(queries, cands, tok, k1=1.2, b=0.75, max_tokens=0):
     return out
 
 
-# ---------------- zero-shot dense ----------------
-
 @torch.no_grad()
 def dense_rank(queries, cands, tok, ckpt, device, mode="head", max_len=1024,
                batch=8):
-    from cjpe_model import DocClassifier       # reuse hidden()/pool()
+    from cjpe_model import DocClassifier
     from ner_model import load_base
     base, arch, d_model = load_base(ckpt, device)
     m = DocClassifier(base, arch, d_model, pooling="mean").to(device).eval()

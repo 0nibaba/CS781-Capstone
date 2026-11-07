@@ -1,4 +1,3 @@
-"""Phase 7 submission: {query_id: [7 candidate ids, best first]}"""
 import os, json, argparse, zipfile, datetime
 
 import numpy as np

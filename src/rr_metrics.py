@@ -1,18 +1,3 @@
-"""
-Macro-F1 for rhetorical roles, plus trivial baselines.
-
-The baselines matter here because 94% of adjacent sentences in CL share a
-label. A model that simply copies the previous label will look excellent on
-accuracy and should look poor on macro-F1 — quantifying that gap is what tells
-us how much of the metric is driven by the rare roles rather than by the bulk
-of the text.
-
-LABEL SET: a label absent from both gold and predictions is excluded from the
-macro average; a label present in gold but never predicted scores 0 and IS
-included. That choice is consequential here — PrecedentOverruled has 3
-training examples in total, and Dissent never appears in IT.
-"""
-
 import os
 import json
 from collections import Counter, defaultdict
@@ -78,8 +63,6 @@ def report(pred, gold, title=""):
     return mf
 
 
-# ---------------- baselines ----------------
-
 def baselines(train_docs, eval_docs):
     gold = {d["id"]: d["labels"] for d in eval_docs}
     counts = Counter(l for d in train_docs for l in d["labels"])
@@ -90,7 +73,6 @@ def baselines(train_docs, eval_docs):
     out["majority class"] = {d["id"]: [majority] * len(d["text"])
                              for d in eval_docs}
 
-    # first label of each document, by domain — documents open predictably
     first = defaultdict(Counter)
     for d in train_docs:
         first[d["domain"]][d["labels"][0]] += 1
@@ -98,9 +80,6 @@ def baselines(train_docs, eval_docs):
         d["id"]: [counts_for_domain(train_docs, d["domain"])] * len(d["text"])
         for d in eval_docs}
 
-    # the ceiling for a model that gets segment boundaries right but has to
-    # guess the label: copy the PREVIOUS GOLD label (cheating, upper bound on
-    # what sequence continuity alone buys)
     out["copy previous gold"] = {
         d["id"]: [d["labels"][0]] + d["labels"][:-1] for d in eval_docs}
 

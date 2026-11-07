@@ -16,7 +16,6 @@ def build_eval_set(pool_path, out_path, num_samples=200, seed=42,
 
     need = prompt_words + ref_words
 
-    # heldout_pool.json is {source: [text, ...]}
     by_source = defaultdict(list)
     for source, texts in pool.items():
         for text in texts:
@@ -40,7 +39,6 @@ def build_eval_set(pool_path, out_path, num_samples=200, seed=42,
         want = per_source
         made = 0
 
-        # one window per doc first; if short on docs, take extra windows
         for rounds in range(max_windows_per_doc):
             if made >= want:
                 break

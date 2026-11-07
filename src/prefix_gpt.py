@@ -1,10 +1,3 @@
-"""
-Prefix-LM model. Deliberately shares initialization and optimizer
-construction with the causal decoder (imported, not copied) so that the
-architecture comparison is controlled: the arms differ in attention
-pattern and objective, not in how weights are set up or optimized.
-"""
-
 import math
 import torch
 import torch.nn as nn
@@ -38,17 +31,11 @@ class PrefixGPT(nn.Module):
                 torch.nn.init.normal_(p, mean=0.0,
                                       std=0.02 / math.sqrt(2 * config.n_layer))
 
-    # shared with the decoder so the arms are initialized and optimized identically
     _init_weights = GPT._init_weights
     configure_optimizers = GPT.configure_optimizers
     num_params = GPT.num_params
 
     def forward(self, idx, targets=None, attn_mask=None, split_indices=None, return_hidden = False):
-        """
-        attn_mask: optional (B, T) padding mask.
-        split_indices: optional (B,) explicit splits; sampled if absent.
-        Signature matches GPT.forward so the training loop can call either.
-        """
         B, T = idx.size()
         device = idx.device
         assert T <= self.config.block_size, \
@@ -58,30 +45,19 @@ class PrefixGPT(nn.Module):
             if self.training:
                 split_indices = sample_split_indices(B, T, device)
             else:
-                # fixed split for validation: mid-range of the training
-                # distribution, so val measures a regime the model trains on
                 split_indices = torch.full((B,), int(SPLIT_EVAL * T),
                                            dtype=torch.long, device=device)
 
         prefix_mask = build_prefix_lm_mask(B, T, split_indices, device,
                                            pad_mask=attn_mask)
         if getattr(self.config, "doc_mask", False):
-            # conjunction: a position may attend only within its own document
-            # AND within the prefix-LM pattern
             prefix_mask = prefix_mask & build_document_mask(
                 idx, self.config.eos_id)
 
-        # a fully-masked row would make softmax produce NaN. the diagonal is
-        # always permitted by both masks (same document, causal), so this
-        # cannot happen — asserted once rather than assumed.
         if getattr(self.config, "doc_mask", False):
             prefix_mask = prefix_mask & build_document_mask(
                 idx, self.config.eos_id)
 
-        # left-padded positions have no valid keys (their causal row covers
-        # only other padding), which would give NaN from the softmax. allow
-        # the diagonal so every query attends to at least itself; these
-        # positions' outputs are discarded during generation anyway.
         eye = torch.eye(T, dtype=torch.bool, device=device).view(1, 1, T, T)
         prefix_mask = prefix_mask | eye
 
@@ -105,16 +81,9 @@ class PrefixGPT(nn.Module):
 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
-        """
-        The prompt is the bidirectional prefix; generated tokens extend the
-        causal suffix. No KV cache: the (B,1,T,T) mask is rebuilt每 step, so
-        this is O(n^2) and slow. Acceptable for tests; needs a cache before
-        1000-prompt generation runs.
-        """
         B, prompt_len = idx.size()
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.config.block_size:]
-            # the prefix is the original prompt, however much of it is in view
             split = torch.full((B,), min(prompt_len, idx_cond.size(1)),
                                dtype=torch.long, device=idx.device)
             logits, _ = self(idx_cond, split_indices=split)
@@ -129,7 +98,6 @@ class PrefixGPT(nn.Module):
         return idx
 
 
-# ---------------- checks ----------------
 
 def check_params():
     from decoder_only_transformer import ModelConfig
@@ -160,8 +128,6 @@ def check_initial_loss():
 
 
 def check_overfit(tokenizer_path, steps=800, lr=1e-3):
-    """Same sanity check as the decoder, but with ~5x less supervision per
-    step, so more steps are needed. The gap is itself a datapoint."""
     from tokenizers import Tokenizer
     print("--- overfit test ---")
     device = "cuda" if torch.cuda.is_available() else "cpu"

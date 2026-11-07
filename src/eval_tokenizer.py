@@ -5,7 +5,6 @@ from tokenizers import Tokenizer
 import pandas as pd
 from transformers import GPT2TokenizerFast
 
-# from logs/corpus_profile.csv
 WORD_PROFILE = {
     'acts':       119_638_300,
     'high':     1_684_692_412,
@@ -13,7 +12,7 @@ WORD_PROFILE = {
     'tribunal': 1_054_788_511,
 }
 
-D_MODEL = 768   # for the embedding-cost column
+D_MODEL = 768
 
 
 def score_tokenizer(tokenizer, name, vocab_size, eval_data, is_hf=False):

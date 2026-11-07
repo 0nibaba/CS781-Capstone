@@ -1,14 +1,3 @@
-"""
-Re-run a fine-tuned NER model and save the MERGED TAG SEQUENCE per document.
-
-predictions.json holds decoded spans, which throws away the information any
-decode experiment needs. Saving tags lets every decode variant be tested
-against the same model output, with no retraining.
-
-Also saves the max softmax probability per token, so confidence thresholding
-can be tested without re-running either.
-"""
-
 import os
 import json
 import argparse
@@ -95,7 +84,6 @@ def main():
 
 
 def merge_windows_f(windows, n_tokens):
-    """merge_windows for float values."""
     full = [0.0] * n_tokens
     for w in windows:
         s = w["tok_start"]

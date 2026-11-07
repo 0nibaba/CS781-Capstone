@@ -1,4 +1,3 @@
-"""Score the majority vote on dev, using each run's saved best-epoch predictions."""
 import os, json, argparse
 from collections import Counter
 from rr_data import load_split

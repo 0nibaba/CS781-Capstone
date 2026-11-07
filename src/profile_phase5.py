@@ -1,4 +1,3 @@
-"""What LSI actually looks like, before any modelling decisions."""
 import os, json, argparse
 from collections import Counter
 import numpy as np
@@ -59,7 +58,6 @@ def main():
             for k in (1, 2, 5, 10, 20):
                 print(f"    statutes appearing <= {k:2d} times: "
                       f"{(freq <= k).sum()} of {len(freq)}")
-            # a rare statute is unreachable if macro-F1 averages over all of them
             print(f"  macro-F1 ceiling if every statute with <5 examples "
                   f"scores 0: {1 - (freq < 5).sum()/len(freq):.3f}")
 

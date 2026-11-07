@@ -1,13 +1,3 @@
-"""Sweep logit-adjustment tau on dev.
-
-Macro-F1 under a long-tailed prior is maximised by a decision rule that is not
-argmax of the posterior. Subtracting tau*log p(y) trades majority-class precision
-for minority recall, which is exactly the trade macro-F1 rewards.
-
-CAVEAT: dev has no Dissent or PrecedentOverruled, so this can only verify that
-tau does not DAMAGE the 11 visible labels. The gain on the other two is unmeasurable
-here and must be bought with a leaderboard submission.
-"""
 import os, argparse
 from collections import Counter
 import torch
@@ -57,7 +47,6 @@ def main():
     print(f"dev {len(docs)} docs / {sum(len(v) for v in gold.values())} sents, "
           f"{len(gold_labels)}/{N_LABELS} labels present\n")
 
-    # cache logits once; tau only changes decoding
     cache = []
     with torch.no_grad():
         for chunk, (ids, msk, pos, pmask, lab) in batches(
@@ -79,8 +68,6 @@ def main():
                     out[it["doc_id"]][si] = ID2LABEL[paths[b][j]]
 
         mf, mp, mr, acc, per = macro_scores(out, gold)
-        # restrict the average to labels dev can actually score, so that
-        # predicting an absent label does not fake a drop
         def _f1(v):
             return v["f1"] if isinstance(v, dict) else v[2]
         vis = [_f1(per[l]) for l in gold_labels if l in per]

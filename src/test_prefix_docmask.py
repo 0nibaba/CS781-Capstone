@@ -1,12 +1,3 @@
-"""
-Prefix-LM combined with document masking.
-
-Two masks that were verified separately are now conjoined, so the interaction
-needs its own checks: document isolation must still hold, bidirectionality
-must survive WITHIN a document's prefix portion, and no query row may end up
-fully masked (which would give NaN from the softmax).
-"""
-
 import torch
 from prefix_lm import PrefixModelConfig, build_prefix_lm_mask
 from prefix_gpt import PrefixGPT
@@ -29,7 +20,6 @@ def test_combined_mask():
     for i, row in enumerate(comb.long().tolist()):
         print(f"    {i:2d} {row}")
 
-    # doc 0 = positions 0-5, doc 1 = 6-11; prefix = 0-7, suffix = 8-11
     assert not comb[0, 6:].any(), "doc 0 attends into doc 1"
     assert not comb[6, :6].any(), "doc 1 attends back into doc 0"
     assert comb[0, :6].any(), "prefix row lost all its own document"
@@ -45,7 +35,6 @@ def test_no_empty_rows():
     T = 1024
     bad = 0
     for _ in range(200):
-        # EOS roughly every 500-900 tokens, matching measured density
         idx = torch.randint(1, 32000, (4, T))
         for b in range(4):
             n = torch.randint(0, 3, (1,)).item()
@@ -70,13 +59,13 @@ def test_isolation():
     m = PrefixGPT(cfg).eval()
 
     idx = torch.randint(1, 1000, (1, 16))
-    idx[0, 7] = EOS                       # doc 0 = 0-7, doc 1 = 8-15
+    idx[0, 7] = EOS
     split = torch.tensor([12])
 
     with torch.no_grad():
         a, _ = m(idx, split_indices=split)
         idx2 = idx.clone()
-        idx2[0, 2] = (idx2[0, 2] + 11) % 1000      # perturb inside doc 0
+        idx2[0, 2] = (idx2[0, 2] + 11) % 1000
         b, _ = m(idx2, split_indices=split)
 
     d_own = (a[0, 5] - b[0, 5]).abs().max().item()
@@ -96,13 +85,13 @@ def test_bidirectionality_within_doc():
     m = PrefixGPT(cfg).eval()
 
     idx = torch.randint(1, 1000, (1, 16))
-    idx[0, 11] = EOS                      # doc 0 = 0-11, all inside the prefix
+    idx[0, 11] = EOS
     split = torch.tensor([12])
 
     with torch.no_grad():
         a, _ = m(idx, split_indices=split)
         idx2 = idx.clone()
-        idx2[0, 9] = (idx2[0, 9] + 11) % 1000      # perturb a LATE prefix token
+        idx2[0, 9] = (idx2[0, 9] + 11) % 1000
         b, _ = m(idx2, split_indices=split)
 
     d_early = (a[0, 2] - b[0, 2]).abs().max().item()

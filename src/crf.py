@@ -1,21 +1,3 @@
-"""
-Linear-chain CRF for BIO tagging.
-
-Motivation, measured rather than assumed: post-hoc gap bridging improved
-macro-F1 monotonically (0.3076 -> 0.3497 -> 0.3525 at gaps 0, 2, 3), which
-means BIO chains break mid-entity and patching them afterwards recovers real
-entities. A CRF scores whole sequences instead of tokens independently, so it
-should prevent the breaks rather than repair them.
-
-Impossible transitions (O -> I-X, B-X -> I-Y) are hard-constrained to -1e4
-rather than left to be learned. With 56 training documents there is not enough
-signal to learn structural rules that are known a priori.
-
-The forward algorithm and Viterbi are verified against brute-force enumeration
-over all tag sequences for a small case — CRF implementations fail silently on
-indexing errors, and a wrong partition function still trains to something.
-"""
-
 import torch
 import torch.nn as nn
 
@@ -25,10 +7,6 @@ NEG = -1e4
 
 
 def build_constraint_mask(tags=TAGS):
-    """
-    (n, n) bool: allowed[i][j] is True if tag j may follow tag i.
-    Also returns start/end masks.
-    """
     n = len(tags)
     allowed = torch.ones(n, n, dtype=torch.bool)
     start_ok = torch.ones(n, dtype=torch.bool)
@@ -39,8 +17,7 @@ def build_constraint_mask(tags=TAGS):
                 continue
             pj, lj = tj.split("-", 1)
             if pj == "B":
-                continue                      # B-X may follow anything
-            # I-X may only follow B-X or I-X
+                continue
             if ti == "O":
                 allowed[i][j] = False
             else:
@@ -48,7 +25,7 @@ def build_constraint_mask(tags=TAGS):
                 if li != lj:
                     allowed[i][j] = False
 
-    for j, tj in enumerate(tags):             # a sequence cannot start with I-X
+    for j, tj in enumerate(tags):
         if tj != "O" and tj.split("-", 1)[0] == "I":
             start_ok[j] = False
 
@@ -83,7 +60,6 @@ class CRF(nn.Module):
         return t, s
 
     def _score(self, emissions, tags, mask):
-        """Score of the given tag sequence. emissions (B,T,n), tags (B,T)."""
         B, T, _ = emissions.shape
         trans, start = self._trans()
 
@@ -100,30 +76,27 @@ class CRF(nn.Module):
         return score + self.end[last_tag]
 
     def _logZ(self, emissions, mask):
-        """Log partition function by the forward algorithm."""
         B, T, n = emissions.shape
         trans, start = self._trans()
 
-        alpha = start.unsqueeze(0) + emissions[:, 0]          # (B, n)
+        alpha = start.unsqueeze(0) + emissions[:, 0]
         for t in range(1, T):
             # (B, n_prev, n_next)
             nxt = alpha.unsqueeze(2) + trans.unsqueeze(0) + \
                 emissions[:, t].unsqueeze(1)
-            nxt = torch.logsumexp(nxt, dim=1)                 # (B, n)
+            nxt = torch.logsumexp(nxt, dim=1)
             m = mask[:, t].unsqueeze(1)
-            alpha = nxt * m + alpha * (1 - m)                 # freeze if padded
+            alpha = nxt * m + alpha * (1 - m)
 
         return torch.logsumexp(alpha + self.end.unsqueeze(0), dim=1)
 
     def forward(self, emissions, tags, mask):
-        """Negative log-likelihood, averaged over the batch."""
         mask = mask.float()
         return (self._logZ(emissions, mask) -
                 self._score(emissions, tags, mask)).mean()
 
     @torch.no_grad()
     def viterbi(self, emissions, mask):
-        """Best valid tag sequence per item. Returns a list of lists."""
         B, T, n = emissions.shape
         trans, start = self._trans()
         maskf = mask.float()
@@ -154,8 +127,6 @@ class CRF(nn.Module):
             out.append(seq[::-1])
         return out
 
-
-# ---------------- verification ----------------
 
 def _brute_force_logZ(crf, emissions):
     """Enumerate every tag sequence. Only tractable for tiny n and T."""

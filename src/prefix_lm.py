@@ -1,29 +1,3 @@
-"""
-Prefix-LM: bidirectional attention over a prefix, causal over the suffix.
-
-Design decisions, recorded here because they are defensible choices rather
-than defaults:
-
-1. SPLIT DISTRIBUTION: uniform over [0.7T, 0.9T]. The Phase-1 test gives a
-   512-word prompt (~660 tokens) and asks for a 128-word continuation
-   (~166 tokens), a ratio of ~0.8. Sampling around that ratio means the
-   training regime matches the evaluation regime. The spread avoids the
-   model only ever seeing one prompt length.
-
-2. SUPERVISED POSITIONS: indices [s-1, T-2] inclusive. Position t predicts
-   token t+1, so the LAST PREFIX TOKEN (index s-1) is the one that predicts
-   the first suffix token. It is INCLUDED. That prediction is made with
-   bidirectional context over the whole prefix -- which is exactly the
-   situation at inference, where the entire prompt is visible when the first
-   continuation token is generated. Including it matches generation.
-
-3. SUPERVISION COST: at a 0.8 split only ~20% of positions carry loss,
-   against 100% for a causal decoder. At matched TOKENS PROCESSED the
-   prefix-LM therefore receives ~5x less supervision. Matching tokens (not
-   supervised positions) is what the compute budget allows; the confound is
-   real and is reported rather than hidden.
-"""
-
 import math
 import torch
 import torch.nn as nn
@@ -44,7 +18,7 @@ class PrefixModelConfig:
     d_model: int = 768
     dropout: float = 0.0
     bias: bool = False
-    use_internal_causal_mask: bool = False   # prefix-LM supplies its own 4D mask
+    use_internal_causal_mask: bool = False
     doc_mask: bool = False
     eos_id: int = 0
 
@@ -61,8 +35,6 @@ class RMSNorm(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    """Attention whose pattern is set entirely by the supplied mask when
-    use_internal_causal_mask is False."""
 
     def __init__(self, config):
         super().__init__()
@@ -92,8 +64,6 @@ class SelfAttention(nn.Module):
     def forward(self, x, attn_mask=None, force_manual=False):
         B, T, C = x.size()
 
-        # without an internal causal mask, an absent attn_mask would mean
-        # every position attends everywhere including the future. fail loudly.
         if not self.use_internal_causal_mask and attn_mask is None:
             raise ValueError(
                 "use_internal_causal_mask=False requires an explicit attn_mask; "
@@ -132,12 +102,6 @@ def sample_split_indices(B, T, device, generator=None):
 
 
 def build_prefix_lm_mask(B, T, split_indices, device, pad_mask=None):
-    """
-    (B, 1, T, T) bool. keep = key_is_prefix | (causal & both_in_suffix).
-
-    Prefix rows see the whole prefix (bidirectional) and nothing of the
-    suffix. Suffix rows see the whole prefix plus earlier suffix positions.
-    """
     s = split_indices.view(B, 1, 1, 1)
     rows = torch.arange(T, device=device).view(1, 1, T, 1)
     cols = torch.arange(T, device=device).view(1, 1, 1, T)
@@ -154,20 +118,12 @@ def build_prefix_lm_mask(B, T, split_indices, device, pad_mask=None):
 
 
 def suffix_loss_mask(B, T, split_indices, device):
-    """
-    True at positions whose prediction is supervised: [s-1, T-2] inclusive.
-
-    Position t predicts token t+1, so index s-1 (the last prefix token) is
-    the one that predicts the first suffix token and IS included -- see
-    design note 2. Index T-1 predicts nothing inside the window.
-    """
     rows = torch.arange(T, device=device).view(1, T)
     s = split_indices.view(B, 1)
     return (rows >= (s - 1)) & (rows <= T - 2)
 
 
 def compute_suffix_loss(logits, targets, split_indices):
-    """Cross-entropy averaged over supervised positions only."""
     B, T, V = logits.shape
     per_tok = F.cross_entropy(
         logits.view(-1, V).float(), targets.reshape(-1), reduction="none"
@@ -189,8 +145,6 @@ class FeedForward(nn.Module):
 
 
 class Block(nn.Module):
-    """Identical to the decoder's block except that attention has no internal
-    causal mask — the pattern comes entirely from the supplied prefix-LM mask."""
 
     def __init__(self, config):
         super().__init__()

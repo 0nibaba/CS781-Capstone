@@ -1,8 +1,3 @@
-"""Phase 3 submission: {doc_id: [label, ...]} with one label per sentence.
-
-Writes submissions/<sub_name>/{prediction.json, config.txt, submission.zip},
-matching the Phase 1 and Phase 2 layout.
-"""
 import os, json, glob, argparse, zipfile, datetime
 import torch
 import torch.nn as nn
@@ -17,7 +12,6 @@ TEST_DIR = os.path.join(ROOT, "test_data/Phase_3_RR/Test")
 
 
 def load_test():
-    """Test files are {doc_id: [sentence, ...]} -- train is a list of dicts."""
     docs = []
     for path in sorted(glob.glob(os.path.join(TEST_DIR, "*.json"))):
         dom = "CL" if "CL" in os.path.basename(path).upper() else "IT"
@@ -26,7 +20,6 @@ def load_test():
         assert isinstance(d, dict), f"{path}: expected a dict"
         for did, sents in d.items():
             docs.append({"id": did, "domain": dom, "text": sents,
-                         # RRBlocks wants labels; dummies are never read back
                          "labels": [LABELS[0]] * len(sents)})
     return docs
 
@@ -73,7 +66,6 @@ def main():
 
     docs = load_test()
     tok = Tokenizer.from_file(args.tokenizer)
-    # block geometry must match training exactly; take it from the checkpoint
     tr_args = ck.get("args", {})
     n_ctx = tr_args.get("context", args.context)
     frac = tr_args.get("ctx_frac", args.ctx_frac)
@@ -93,7 +85,6 @@ def main():
                 for j, si in enumerate(range(it["pred_from"], it["pred_to"])):
                     out[it["doc_id"]][si] = ID2LABEL[paths[b][j]]
 
-    # the grader requires exactly one label per sentence, in order
     for d in docs:
         v = out[d["id"]]
         assert len(v) == len(d["text"]), \

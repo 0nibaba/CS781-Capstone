@@ -1,20 +1,3 @@
-"""Train a bi-encoder for Prior Case Retrieval.
-
-Representation: up to 4 chunks of 1024 tokens over the first 4096 of each case
-(the BM25 optimum). Query-candidate score = MAX cosine similarity over chunk
-pairs. Training samples one chunk from each side, so training and inference
-perform the same operation.
-
-Objective: InfoNCE over in-batch negatives, optionally plus one hard negative
-per query mined from BM25's top-ranked non-relevant candidates.
-
-Reference points on dev (118 queries, 1023 candidates):
-  random                      0.0068
-  zero-shot dense head_tail   0.1946
-  BM25 @1024                  0.2468   (matched budget to one chunk)
-  BM25 @4096                  0.2991   (the real lexical control)
-  perfect ranking             0.6181
-"""
 import os, csv, json, math, time, argparse
 
 import numpy as np
@@ -77,7 +60,6 @@ def rank_dev(model, qcorp, ccorp, queries, device, ctx, batch=32):
 
 
 def mine_hard(queries, cands, tok, n=20, budget=1024):
-    """BM25's top-ranked non-relevant candidates: plausible but wrong."""
     r = bm25_rank(queries, cands, tok, max_tokens=budget)
     out = {}
     for q, v in queries.items():
@@ -154,7 +136,6 @@ def main():
             for q in blk.parameters():
                 q.requires_grad = True
     elif args.finetune == "ia3":
-        # IA3: learned per-channel rescaling of K and V, nothing else.
         for q in model.base.parameters():
             q.requires_grad = False
         from ia3 import apply_ia3

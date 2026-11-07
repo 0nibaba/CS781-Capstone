@@ -1,12 +1,3 @@
-"""
-Architecture 4: encoder-decoder with cross-attention.
-
-4 encoder + 6 decoder layers = 110,318,592 params, +2,304 (0.002%) over the
-baseline decoder. The marginally closer 8+3 split was rejected: Phase 1 scores
-generation and the decoder is what generates, so a 3-layer decoder would
-compete against 12 layers of generative depth in the other architectures.
-"""
-
 import math
 import torch
 import torch.nn as nn
@@ -27,14 +18,11 @@ class EncDecConfig:
     d_model: int = 768
     dropout: float = 0.0
     bias: bool = False
-    use_internal_causal_mask: bool = False   # masks are always supplied
-    # kept so shared code paths that read n_layer still work
+    use_internal_causal_mask: bool = False
     n_layer: int = 10
 
 
 class CrossAttention(nn.Module):
-    """Queries from the decoder, keys/values from the encoder output. The
-    attention matrix is (B, h, T_dec, T_enc) — not square."""
 
     def __init__(self, config):
         super().__init__()
@@ -57,7 +45,6 @@ class CrossAttention(nn.Module):
         k = k.view(B, T_enc, self.n_head, self.d_head).transpose(1, 2)
         v = v.view(B, T_enc, self.n_head, self.d_head).transpose(1, 2)
 
-        # padded encoder positions must not be attended to
         mask = None
         if enc_pad_mask is not None:
             mask = enc_pad_mask.bool().view(B, 1, 1, T_enc).expand(B, 1, T_dec, T_enc)
@@ -74,7 +61,7 @@ class EncoderBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.norm1 = RMSNorm(config.d_model)
-        self.attn = SelfAttention(config)      # no internal causal mask
+        self.attn = SelfAttention(config)
         self.norm2 = RMSNorm(config.d_model)
         self.ffn = FeedForward(config)
 
@@ -141,7 +128,6 @@ class EncoderDecoder(nn.Module):
         pos = torch.arange(T, dtype=torch.long, device=enc_idx.device)
         x = self.tok_emb(enc_idx) + self.pos_emb(pos)
 
-        # bidirectional: all positions visible except padding
         m = torch.ones(B, 1, T, T, dtype=torch.bool, device=enc_idx.device)
         if enc_pad_mask is not None:
             m = m & enc_pad_mask.bool().view(B, 1, 1, T)

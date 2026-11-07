@@ -1,24 +1,3 @@
-"""
-LoRMA+ : Low-Rank Multiplicative Adaptation.
-
-LoRA is additive:        h = (W0 + (a/r) B A) x
-LoRMA is multiplicative: h = I(B A) W0 x
-
-With additive inflation, I(BA) = (a/r) BA + I_d, so the transform starts as
-the identity (B = 0) and the adapted layer is initially a no-op. Computed as
-
-    h = W0 x + (a/r) B (A (W0 x))
-
-which never forms the d x d matrix and costs the same as LoRA.
-
-FUSED QKV. The paper targets the query and value projections separately, but
-this codebase uses one fused c_attn: Linear(d, 3d) whose output is split into
-Q, K, V. Applying one transform to the fused output would adapt Q, K and V
-jointly with a shared (3d x 3d) transform — a different method. So the output
-is sliced and separate transforms are applied to the Q and V thirds, leaving
-K untouched, which matches the paper.
-"""
-
 import math
 import torch
 import torch.nn as nn
@@ -26,7 +5,6 @@ from torch.nn import functional as F
 
 
 class LoRMAQKV(nn.Module):
-    """Wraps a fused QKV Linear(d, 3d), adapting only the Q and V slices."""
 
     def __init__(self, base: nn.Linear, d_model: int, r: int = 8,
                  alpha: float = 16.0, targets=("q", "v")):
@@ -42,8 +20,6 @@ class LoRMAQKV(nn.Module):
         for p in self.base.parameters():
             p.requires_grad = False
 
-        # one (B, A) pair per adapted slice. B = 0 so the transform starts as
-        # the identity and the model is unchanged at step 0.
         self.A = nn.ParameterDict()
         self.B = nn.ParameterDict()
         for t in self.targets:
@@ -53,23 +29,20 @@ class LoRMAQKV(nn.Module):
             self.B[t] = nn.Parameter(torch.zeros(d_model, r))
 
     def forward(self, x):
-        out = self.base(x)                      # (..., 3d)
+        out = self.base(x)
         q, k, v = out.split(self.d, dim=-1)
         parts = {"q": q, "k": k, "v": v}
 
         for t in self.targets:
             h = parts[t]
-            # h + (a/r) B (A h), associativity keeping everything (..., r)
-            u = h @ self.A[t].T                 # (..., r)
+            u = h @ self.A[t].T
             parts[t] = h + self.scaling * (u @ self.B[t].T)
 
         return torch.cat([parts["q"], parts["k"], parts["v"]], dim=-1)
 
     @torch.no_grad()
     def merged_weight(self):
-        """W_tuned = I(BA) W0, for zero-latency inference. Returned, not
-        applied, so the original is never destroyed."""
-        W = self.base.weight.data.clone()       # (3d, d_in)
+        W = self.base.weight.data.clone()
         for i, t in enumerate(("q", "k", "v")):
             if t not in self.targets:
                 continue
@@ -81,11 +54,6 @@ class LoRMAQKV(nn.Module):
 
 
 def apply_lorma(model, r=8, alpha=16.0, targets=("q", "v"), verbose=True):
-    """
-    Replace every fused QKV projection with a LoRMA-adapted one and freeze
-    everything except the adapters (and the classification head, which is
-    new and must train).
-    """
     replaced = []
 
     def walk(module, prefix=""):
@@ -115,8 +83,6 @@ def apply_lorma(model, r=8, alpha=16.0, targets=("q", "v"), verbose=True):
         print(f"  trainable {t:,} / {a:,} ({100*t/a:.3f}%)")
     return model
 
-
-# ---------------- tests ----------------
 
 if __name__ == "__main__":
     torch.manual_seed(0)

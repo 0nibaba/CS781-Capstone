@@ -69,7 +69,6 @@ def process_source(category, filename, data_dir, out_dir, tokenizer, eot_id,
             if not raw_text:
                 continue
 
-            # hash RAW text with md5 — must match build_heldout.py exactly
             doc_hash = hashlib.md5(raw_text.encode('utf-8')).hexdigest()
 
             if doc_hash in heldout_set:
@@ -139,7 +138,6 @@ if __name__ == "__main__":
     if eot_id is None:
         raise ValueError("Tokenizer must define <|endoftext|>")
 
-    # heldout_hashes.json is {source: [hash, ...]} — flatten it
     heldout_set = set()
     if os.path.exists(args.heldout_hashes):
         with open(args.heldout_hashes) as f:

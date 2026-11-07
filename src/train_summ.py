@@ -1,16 +1,3 @@
-"""Fine-tune a Phase 1 model for abstractive legal summarization.
-
-Trains on chunk 0 only by default: BERTScore truncates candidate and reference
-at 512 RoBERTa tokens, so only the opening of each summary is ever scored, and
-later chunks cannot affect the primary metric. --all_chunks trains on every
-chunk pair instead, which serves coverage and the secondary ROUGE metrics; that
-is a different experiment and is labelled as one.
-
-Validation tracks loss every eval_every steps (cheap) and generates real
-summaries on --gen_n dev documents at each epoch end (expensive but the only
-thing that measures the metric we are judged on). Baseline to beat: lead-512
-extraction scores BERTScore F1 0.8300.
-"""
 import os, csv, json, math, time, argparse
 
 import numpy as np

@@ -1,23 +1,7 @@
-"""PCR data: cases as sequences of 1024-token chunks over the first 4096.
-
-BM25 peaks at a 4,096-token budget (0.2991) and decays monotonically beyond it
-(full document 0.0734), so the first ~4 windows hold the discriminative content
-and the rest is boilerplate noise. The dense model is capped at 1024 tokens by
-Phase 1's learned positions, so a case is represented as up to 4 chunks and a
-query-candidate pair is scored by MAX similarity over chunk pairs.
-
-Max rather than mean, for the same reason max-pooling won in Phase 5: relevance
-between two judgments often turns on one matching passage, and averaging
-dilutes it with chunks that correctly report no match.
-
-Training samples ONE chunk from the query and one from a relevant candidate per
-example, so the model is trained on exactly the chunk-level matching that
-max-sim inference performs.
-"""
 import os, json, random
 import torch
 
-from pcr_baseline import load_split, TOKENIZER   # shared loader
+from pcr_baseline import load_split, TOKENIZER
 
 MAX_DOC = 4096
 CHUNK = 1024
@@ -32,7 +16,6 @@ def chunk_ids(ids, chunk=CHUNK, max_doc=MAX_DOC):
 
 
 class Corpus:
-    """Pre-tokenised chunks for every document in a split."""
 
     def __init__(self, texts, tok, batch=64):
         self.ids = list(texts)
@@ -60,7 +43,6 @@ def pack(chunks, device):
 
 
 class PairSampler:
-    """(query, positive-candidate) pairs; one chunk sampled from each."""
 
     def __init__(self, queries, qcorpus, ccorpus, seed=1899):
         self.pairs = [(q, c) for q, v in queries.items()
@@ -78,8 +60,6 @@ class PairSampler:
             random.Random(1899 + epoch).shuffle(idx)
         for i in range(0, len(idx), batch_size):
             sel = [self.pairs[j] for j in idx[i:i + batch_size]]
-            # one query per batch slot; duplicates would make in-batch
-            # negatives false, so drop repeats within a batch
             seen, keep = set(), []
             for q, c in sel:
                 if q in seen:

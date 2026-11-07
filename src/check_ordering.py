@@ -1,18 +1,3 @@
-"""
-Is document ordering in the raw JSON non-random?
-
-Document masking assumes packed documents are unrelated, so cross-document
-attention is noise. The ablation found the entire masking penalty confined
-to `tribunal` (+0.047 vs +0.002/+0.001/-0.000 elsewhere). If adjacent
-documents in tribunal are RELATED, that assumption fails there and masking
-removes real context rather than noise.
-
-Tests adjacent-pair similarity against random-pair similarity, per source.
-The contrast across sources is the whole test: tribunal alone showing
-adjacency supports the hypothesis; all four showing it equally does not
-explain the tribunal-only effect.
-"""
-
 import os
 import json
 import random
@@ -30,14 +15,13 @@ FILES = {
     "tribunal": "train_tribunals.json",
 }
 
-N_DOCS = 2000          # documents to read per source, in file order
-N_RANDOM = 2000        # random pairs to sample for the baseline
+N_DOCS = 2000
+N_RANDOM = 2000
 SEED = 1899
 MIN_WORDS = 50
 
 
 def stream(path, n):
-    """First n usable records, in file order — the order the memmap preserved."""
     out = []
     with open(path, "rb") as f:
         for rec in ijson.items(f, "item"):
@@ -53,8 +37,6 @@ def stream(path, n):
 
 
 def content_words(text, cap=3000):
-    """Lowercased alphabetic tokens of length >= 5 — skews toward party
-    names, place names and legal terms rather than function words."""
     ws = text.lower().split()[:cap]
     return {w.strip(".,;:()[]\"'") for w in ws
             if len(w) >= 5 and w.isalpha()}
@@ -76,11 +58,9 @@ def main():
         recs = stream(path, N_DOCS)
         print(f"read {len(recs)} documents in file order")
 
-        # ---- what metadata is available ----
         keys = sorted(set().union(*(r.keys() for r in recs)))
         print(f"fields: {keys}")
 
-        # ---- metadata adjacency ----
         for field in ("court", "court_id", "bench", "year", "date", "tribunal", "category", "filepath"):
             vals = [r.get(field) for r in recs]
             if all(v is None for v in vals):
@@ -89,10 +69,8 @@ def main():
             if field == "filepath":
                 vals = [os.path.dirname(v) if v else None for v in vals]
 
-            # adjacent agreement
             adj = [vals[i] == vals[i + 1] for i in range(len(vals) - 1)
                    if vals[i] is not None and vals[i + 1] is not None]
-            # random-pair agreement
             idx = [i for i, v in enumerate(vals) if v is not None]
             ran = [vals[rng.choice(idx)] == vals[rng.choice(idx)]
                    for _ in range(N_RANDOM)] if idx else []
@@ -105,7 +83,6 @@ def main():
                 print(f"  {label:<14} adjacent {a:5.1f}%  random {r:5.1f}%  "
                       f"ratio {ratio:5.1f}x{flag}")
 
-        # ---- lexical adjacency ----
         sets = [content_words(r["text"]) for r in recs]
         adj_j = [jaccard(sets[i], sets[i + 1]) for i in range(len(sets) - 1)]
         ran_j = [jaccard(sets[rng.randrange(len(sets))],
@@ -118,12 +95,10 @@ def main():
         print(f"  {'':14} adjacent median {np.median(adj_j):.4f}, "
               f"p90 {np.percentile(adj_j, 90):.4f}")
 
-        # how often are adjacent pairs strikingly similar?
         hi = 100 * np.mean(np.array(adj_j) > np.percentile(ran_j, 99))
         print(f"  {'':14} {hi:.1f}% of adjacent pairs exceed the 99th "
               f"percentile of random pairs")
 
-        # ---- eyeball the most similar adjacent pairs ----
         order = np.argsort(adj_j)[::-1][:3]
         print(f"\n  most similar adjacent pairs:")
         for i in order:

@@ -1,4 +1,3 @@
-"""What CJPE actually looks like, before any modelling decisions."""
 import os, json, argparse
 from collections import Counter
 import numpy as np
@@ -13,7 +12,7 @@ TOKENIZER = os.path.join(ROOT, "checkpoints/tokenizers/legal_32000.json")
 def load(path):
     with open(path) as f:
         d = json.load(f)
-    if isinstance(d, dict):               # {id: {...}} or {id: text}
+    if isinstance(d, dict):
         out = []
         for k, v in d.items():
             out.append({"id": k, **v} if isinstance(v, dict)
@@ -46,7 +45,6 @@ def main():
             n = sum(c.values())
             for k, v in sorted(c.items()):
                 print(f"  label {k}: {v} ({100*v/n:.1f}%)")
-            # a majority-class predictor's macro-F1, the floor to beat
             maj = max(c.values()) / n
             print(f"  majority-class accuracy {maj:.4f}, "
                   f"macro-F1 {2*maj/(1+maj)/2:.4f}")
@@ -62,7 +60,6 @@ def main():
                   f"chunks needed at {w}: mean "
                   f"{np.ceil(lens/w).mean():.1f}")
 
-        # does label correlate with length? a trivial shortcut if so
         if labs:
             for k in sorted(set(labs)):
                 sel = lens[[i for i, d in enumerate(docs)

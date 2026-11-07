@@ -1,22 +1,3 @@
-"""Knowledge distillation for abstractive summarization (compulsory).
-
-Teacher: summ_lorma (prefix-LM + LoRMA, dev BERTScore 0.8290 under
-greedy + no-repeat-4). Student: the same architecture at 6 of 12 layers,
-initialised from every other teacher layer, trained fully.
-
-Soft target is the teacher's full vocabulary distribution at each summary
-position -- 32,000 graded values per token, by far the densest supervision of
-any phase. Two arms from one initialisation, as in Phases 3-5.
-
-Cross-phase series of the KD term's contribution:
-  Ph2 NER  70 docs    +0.0036      Ph4 CJPE 37,387  +0.0354
-  Ph3 RR   80 docs    +0.0050      Ph5 LSI  42,750  +0.0083
-Current hypothesis: the effect tracks how much the truncation COSTS, given
-enough data to exploit softer targets. Generation is a far harder target than
-classification, so the half-depth student should lose more here than LSI's did
-(-0.0057), and the hypothesis therefore predicts a LARGER effect than +0.0083.
-Registered before running.
-"""
 import os, copy, json, argparse
 
 import numpy as np

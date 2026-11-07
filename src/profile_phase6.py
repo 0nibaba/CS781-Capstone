@@ -1,4 +1,3 @@
-"""What the summarization data looks like, before any modelling decisions."""
 import os, json, argparse
 import numpy as np
 from tokenizers import Tokenizer
@@ -50,13 +49,10 @@ def main():
                 print(f"    p{q}: {np.percentile(sl, q):.0f}")
             print(f"  compression doc/summary: median "
                   f"{np.median(dl/np.clip(sl,1,None)):.1f}x")
-            # how much of a 1024 budget is left for the source?
             for b in (256, 512, 768):
                 print(f"    summaries under {b} tokens: "
                       f"{100*(sl<=b).mean():5.1f}%")
 
-            # is the reference largely copied from the source? decides whether
-            # a lead-k extractive baseline is a serious competitor
             import random
             random.seed(0)
             ov = []

@@ -1,19 +1,3 @@
-"""
-Where do the predictions actually go wrong?
-
-The baseline shows WIT at 1 true positive against 122 false positives, and
-similar for APP and RESP. Three possibilities, which need separating before
-deciding what to fix:
-
-  A. BOUNDARY  - the right entity found, the span off by a character or two
-  B. LABEL     - the right span found, the wrong label (APP/RESP/WIT confusion)
-  C. SPURIOUS  - predicted where there is no entity at all
-  D. MISSED    - gold entity with no overlapping prediction
-
-Only C and D are really "the model cannot find entities". A is a decoding
-problem and B is a discrimination problem, and they call for different fixes.
-"""
-
 import os
 import json
 import argparse
@@ -32,8 +16,8 @@ def overlaps(a, b):
 def categorise(pred, gold):
     """Returns counters and example lists."""
     cat = Counter()
-    confusion = defaultdict(Counter)       # gold label -> predicted label
-    boundary = defaultdict(Counter)        # label -> (start_delta, end_delta)
+    confusion = defaultdict(Counter)
+    boundary = defaultdict(Counter)
     examples = defaultdict(list)
 
     for did in set(pred) | set(gold):
@@ -55,7 +39,6 @@ def categorise(pred, gold):
                 examples["missed"].append((did, g))
                 continue
 
-            # the overlapping prediction with the largest intersection
             i = max(ov, key=lambda k: min(P[k][1], g[1]) - max(P[k][0], g[0]))
             p = P[i]
             used_p.add(i)

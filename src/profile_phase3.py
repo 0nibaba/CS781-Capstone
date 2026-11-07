@@ -1,22 +1,3 @@
-"""
-What is in the Phase 3 Rhetorical Role data?
-
-Three things decide the architecture:
-
-1. DOCUMENT LENGTH in tokens. If a whole document fits in 1024, every
-   sentence can be encoded with full document context in one pass. If not,
-   the Phase 2 windowing machinery is needed again.
-
-2. LABEL TRANSITIONS. Rhetorical roles follow a narrative order (Fact ->
-   Issue -> Argument -> Ratio -> Ruling). If the transition matrix is sparse
-   — most label pairs never adjacent — a sentence-level CRF should help as
-   much as the BIO CRF did in Phase 2 (+0.18 macro-F1).
-
-3. DOMAIN DIVERGENCE. If CL and IT have different label distributions, a
-   joint model may be worse than two separate ones, or may need a domain
-   feature.
-"""
-
 import os
 import json
 from collections import Counter, defaultdict
@@ -35,11 +16,6 @@ def load(path):
         return json.load(f)
 
 def load_docs(path):
-    """Normalise both shapes into [{id, text, labels?}, ...].
-
-    train/dev: list of {id, text, labels}
-    test:      dict of {doc_id: [sentence, ...]}  — no labels
-    """
     d = load(path)
     if isinstance(d, dict):
         return [{"id": k, "text": v} for k, v in d.items()]
@@ -67,7 +43,6 @@ def main():
         if os.path.exists(p):
             splits[f"{dom}_test"] = load_docs(p)
 
-    # ---- sizes ----
     print("=" * 74)
     print("splits")
     print("=" * 74)
@@ -78,14 +53,12 @@ def main():
         lab = sum(1 for d in v if d.get("labels"))
         print(f"  {k:<10} {len(v):>6} {sum(n_sent):>10,} "
               f"{int(np.median(n_sent)):>13} {max(n_sent):>6} {lab:>9}")
-        # labels must align with sentences
         bad = [d["id"] for d in v
                if d.get("labels") and len(d["labels"]) != len(d["text"])]
         if bad:
             print(f"    WARNING: {len(bad)} documents where "
                   f"len(labels) != len(text)")
 
-    # ---- token lengths ----
     print("\n" + "=" * 74)
     print("length in tokens (block_size is 1024)")
     print("=" * 74)
@@ -103,7 +76,6 @@ def main():
               f"max {t.max():>6,}   over 1024: "
               f"{100*(t > 1024).mean():.0f}%")
 
-    # ---- label distribution ----
     print("\n" + "=" * 74)
     print("label distribution  (macro-F1 weights all labels equally)")
     print("=" * 74)
@@ -143,7 +115,6 @@ def main():
         print(f"\n  under 100 training examples total: {rare}")
         print("  these carry the same macro-F1 weight as the most frequent label")
 
-    # ---- transition structure: the CRF case ----
     print("\n" + "=" * 74)
     print("label transitions — how constrained is the sequence?")
     print("=" * 74)
@@ -179,7 +150,6 @@ def main():
     print("\n  a sparse transition matrix and a high self-transition rate both")
     print("  favour a CRF over independent per-sentence classification")
 
-    # ---- what a document looks like ----
     print("\n" + "=" * 74)
     print("example document")
     print("=" * 74)

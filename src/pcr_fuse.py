@@ -1,15 +1,3 @@
-"""Reciprocal-rank fusion over dense rankers and BM25.
-
-BM25 and a bi-encoder fail differently: BM25 matches shared citations, statute
-names and quoted passages; the dense model matches semantics and survives
-paraphrase. RRF combines ranks rather than scores, so systems with
-incomparable score scales can be merged without calibration -- which matters
-here, since cosine similarities and BM25 scores live on different scales.
-
-Weights are tuned on dev by a small grid. Reported separately:
-  dense-only fusion   (uses nothing but Phase 1 models)
-  dense + BM25 fusion (adds a lexical statistic over the provided pool)
-"""
 import os, json, itertools, argparse, zipfile, datetime
 
 import numpy as np

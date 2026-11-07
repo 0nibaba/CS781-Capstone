@@ -1,25 +1,8 @@
-"""Document classifier over a Phase 1 model, for binary judgment prediction.
-
-A judgment is 2.7k-3.9k tokens against a 1024-token ceiling, so the model sees
-a WINDOW of the case (cjpe_data.select picks which) and must reduce that window
-to one vector. Three pooling strategies, because the right one depends on the
-architecture:
-
-  last  -- the final non-pad position. Under causal attention this is the only
-           position that has read the entire window. Near-useless for a
-           bidirectional encoder, where every position already sees everything.
-  mean  -- masked average over the window. The natural default for prefix_lm
-           and encdec; discards position entirely.
-  attn  -- a learned query scores every position and pools by that. Lets the
-           model decide which parts of a judgment carry the outcome, which is
-           the question the brief asks directly.
-"""
-
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from ner_model import load_base          # arch dispatch, reused since Phase 2
+from ner_model import load_base
 
 POOLINGS = ("last", "mean", "attn")
 
@@ -58,13 +41,13 @@ class DocClassifier(nn.Module):
         """(B,T,d) -> (B,d)"""
         m = attn_mask.bool()
         if self.pooling == "last":
-            idx = attn_mask.sum(1) - 1                      # (B,)
+            idx = attn_mask.sum(1) - 1
             idx = idx.clamp(min=0).view(-1, 1, 1).expand(-1, 1, h.size(-1))
             return h.gather(1, idx).squeeze(1)
         if self.pooling == "mean":
             w = m.unsqueeze(-1).to(h.dtype)
             return (h * w).sum(1) / w.sum(1).clamp(min=1.0)
-        s = self.score(h).squeeze(-1)                       # (B,T)
+        s = self.score(h).squeeze(-1)
         s = s.masked_fill(~m, float("-inf"))
         a = s.softmax(-1).unsqueeze(-1)
         return (h * a).sum(1)
@@ -72,7 +55,7 @@ class DocClassifier(nn.Module):
     def forward(self, input_ids, attn_mask, labels=None, class_weights=None):
         h = self.hidden(input_ids, attn_mask)
         v = self.pool(h, attn_mask)
-        logits = self.head(self.dropout(v))                 # (B, n_labels)
+        logits = self.head(self.dropout(v))
         loss = None
         if labels is not None:
             loss = F.cross_entropy(logits.float(), labels,

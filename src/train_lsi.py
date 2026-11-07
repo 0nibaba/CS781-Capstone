@@ -1,15 +1,3 @@
-"""Fine-tune a Phase 1 model for Legal Statute Identification (multi-label).
-
-Every evaluation reports macro-F1 three ways on the full 10,181-document dev
-set: at a fixed 0.5 cutoff, at the best single global threshold, and with one
-tuned threshold per statute. The gap between them measures how much of this
-task is calibration rather than representation.
-
-Checkpoint selection uses the per-label number, since that is the decision rule
-a submission would use, and the tuned thresholds are saved with the checkpoint
-so the submission cannot silently fall back to 0.5.
-"""
-
 import os, csv, json, math, time, argparse
 
 import numpy as np

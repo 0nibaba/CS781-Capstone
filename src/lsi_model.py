@@ -1,10 +1,3 @@
-"""Multi-label statute classifier: 100 independent sigmoids (binary relevance).
-
-Reuses DocClassifier's architecture dispatch and pooling; only the head width
-and the loss change. BCE with an optional per-label pos_weight, which is the
-standard handling for positive/negative imbalance -- each statute is positive in
-0.3%-27% of documents, so the negatives overwhelm the positives for most labels.
-"""
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -22,7 +15,7 @@ class StatuteClassifier(DocClassifier):
     def forward(self, input_ids, attn_mask, labels=None, pos_weight=None):
         h = self.hidden(input_ids, attn_mask)
         v = self.pool(h, attn_mask)
-        logits = self.head(self.dropout(v))          # (B, N_LABELS)
+        logits = self.head(self.dropout(v))
         loss = None
         if labels is not None:
             loss = F.binary_cross_entropy_with_logits(

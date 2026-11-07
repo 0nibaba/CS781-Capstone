@@ -1,24 +1,3 @@
-"""
-Knowledge distillation for L-NER (Phase 2 section 8.2.2, compulsory).
-
-Teacher: the full fine-tuned CRF model (CV 0.4438, leaderboard 0.5161).
-Student: the same prefix-LM architecture truncated to 6 of 12 layers,
-initialised from every other teacher layer (DistilBERT's scheme). Embeddings
-and head are copied directly.
-
-SIMPLIFICATION, stated rather than hidden: the teacher has a CRF, so its
-output is a sequence score, not a per-token distribution. Distilling it
-faithfully means matching marginals via forward-backward. Here only the
-EMISSIONS are distilled (KL between pre-CRF logits), and the student trains
-its own CRF on hard labels alongside. The emissions carry most of the signal
-and this avoids implementing the backward pass under deadline.
-
-The comparison that matters is NOT student-vs-teacher — a smaller model
-scoring lower proves nothing. It is distilled-student vs same-size student
-trained WITHOUT distillation, which is what isolates the effect of
-distillation itself. Both are run here.
-"""
-
 import os
 import csv
 import copy
@@ -43,7 +22,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def make_student(teacher, keep_every=2):
-    """Truncate the teacher to every Nth layer, keeping everything else."""
     student = copy.deepcopy(teacher)
     blocks = student.base.transformer.h
     kept = [blocks[i] for i in range(0, len(blocks), keep_every)]
@@ -81,7 +59,6 @@ def evaluate(model, ds, batch_size, device, ctx, gold):
 
 def train_student(student, teacher, tr, va, gold_va, args, device, ctx,
                   distil, tag):
-    """distil=False trains the same student on hard labels only."""
     print(f"\n{'-' * 66}")
     print(f"{tag}: {'WITH' if distil else 'WITHOUT'} distillation")
     print(f"{'-' * 66}")
@@ -155,8 +132,6 @@ def train_student(student, teacher, tr, va, gold_va, args, device, ctx,
     return best, best_ep, n
 
 def distil_all(args, tok, device, ctx):
-    """Student trained on fold1+fold2 for submission. No validation set, so
-    the epoch count is taken from the cross-validated run (epoch 8)."""
     docs, gold = {}, {}
     for f in ("fold1", "fold2"):
         d, g = load_fold(f)
@@ -228,7 +203,6 @@ def distil_all(args, tok, device, ctx):
             step += 1
         print(f"  epoch {epoch:3d} | hard {ep_h/nb:8.2f} | kd {ep_k/nb:7.4f}")
 
-    # keep_every is saved so the submission script can rebuild the truncation
     torch.save({"model": student.state_dict(), "arch": arch,
                 "epoch": args.epochs, "args": vars(args)},
                os.path.join(args.out_dir, "ckpt_final.pt"))
@@ -281,7 +255,6 @@ def main():
     print(f"train {train_fold} ({len(tr)} windows), "
           f"val {args.val_fold} ({len(va)} windows)")
 
-    # ---- teacher ----
     base, arch, d_model = load_base(args.base_checkpoint, device)
     teacher = TokenClassifier(base, arch, d_model, use_crf=True).to(device)
     ck_path = os.path.join(args.teacher_dir, "ckpt_final.pt")
@@ -300,7 +273,6 @@ def main():
           f"{len(teacher.base.transformer.h)} layers, "
           f"macro-F1 {tf:.4f} on {args.val_fold}")
 
-    # ---- two students from the same initialisation ----
     s1 = make_student(teacher, args.keep_every).to(device)
     s2 = copy.deepcopy(s1).to(device)
     for q in list(s1.parameters()) + list(s2.parameters()):
@@ -315,7 +287,6 @@ def main():
     f_hd, e_hd, _ = train_student(s2, teacher, tr, va, gold_va, args,
                                   device, ctx, False, "hard_only")
 
-    # ---- inference cost ----
     print(f"\n{'=' * 66}")
     print("summary")
     print(f"{'=' * 66}")

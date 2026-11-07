@@ -1,24 +1,3 @@
-"""Knowledge distillation for Rhetorical Role prediction (compulsory).
-
-Teacher: rr_ctx24 (dev macro-F1 0.5894), frozen.
-Student: the same model truncated to 6 of 12 layers, initialised from every
-other teacher layer (DistilBERT's scheme). Embeddings, head and CRF copied.
-
-The comparison that matters is NOT student-vs-teacher -- a smaller model
-scoring lower proves nothing. It is distilled-student vs the SAME student
-trained without distillation. Both are run here, from one initialisation.
-
-Phase 2 found the KL term itself worth only +0.0036 on NER: the student learned
-from the hard labels, not the teacher's soft distribution. This repeats the
-measurement on a task with a different output structure (sentence sequences
-rather than character spans) to see whether that generalises.
-
-NOISE CAVEAT: dev is 10 documents. Phase 3 established that a +0.028 dev gain
-can be worth +0.000 on the leaderboard, so an effect the size of Phase 2's
-(+0.0036) is NOT measurable on one split. Rerun with several --seed values and
-report the spread, or treat a small difference as a null.
-"""
-
 import os
 import copy
 import json
@@ -40,7 +19,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def make_student(teacher, keep_every=2):
-    """Truncate to every Nth layer, keeping embeddings, head and CRF."""
     student = copy.deepcopy(teacher)
     blocks = student.base.transformer.h
     kept = [blocks[i] for i in range(0, len(blocks), keep_every)]
@@ -150,7 +128,6 @@ def main():
     args.out_dir = os.path.join(ROOT, "checkpoints/rr", args.run_name)
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # ---- teacher, and its block geometry ----
     ck_path = os.path.join(args.teacher_dir, "ckpt_best.pt")
     if not os.path.exists(ck_path):
         ck_path = os.path.join(args.teacher_dir, "ckpt_final.pt")
@@ -187,7 +164,6 @@ def main():
           f"{len(teacher.base.transformer.h)} layers, "
           f"dev macro-F1 {tf:.4f} / acc {tacc:.4f}")
 
-    # ---- two students from ONE initialisation ----
     s1 = make_student(teacher, args.keep_every).to(device)
     s2 = copy.deepcopy(s1).to(device)
     for q in list(s1.parameters()) + list(s2.parameters()):
@@ -201,7 +177,6 @@ def main():
     f_hd, e_hd, _ = train_student(s2, teacher, tr, va, dev_docs, args,
                                   device, ctx, False, "hard_only")
 
-    # ---- inference cost ----
     def timed(m):
         b, L, S = 4, mx, 32
         ids = torch.randint(0, 32000, (b, L), device=device)

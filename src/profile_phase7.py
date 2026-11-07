@@ -1,4 +1,3 @@
-"""What PCR looks like, before any modelling decisions."""
 import os, json, argparse
 from collections import Counter
 import numpy as np
@@ -17,7 +16,6 @@ def load(p):
 
 
 def as_text(v):
-    """text is a list of sentences; candidates may be dicts or bare lists."""
     if isinstance(v, dict):
         v = v.get("text", v.get("document", ""))
     if isinstance(v, list):
@@ -67,18 +65,15 @@ def main():
             print(f"    exactly 7: {100*(r==7).mean():.1f}%  "
                   f"fewer than 7: {100*(r<7).mean():.1f}%  "
                   f"more: {100*(r>7).mean():.1f}%")
-            # the ceiling on Micro-F1@7 given only 7 slots are scored
             tp = np.minimum(r, 7)
             prec = tp.sum() / (7 * len(r))
             recl = tp.sum() / r.sum()
             print(f"  PERFECT-ranking ceiling: micro-P {prec:.4f} "
                   f"micro-R {recl:.4f} micro-F1 "
                   f"{2*prec*recl/(prec+recl):.4f}")
-            # random baseline
             print(f"  random-7 baseline micro-R ~ "
                   f"{7/len(pools[name]):.5f}")
 
-        # lengths
         ql = np.array([len(tok.encode(as_text(q)).ids) for _, q in qs[:300]])
         print(f"  query tokens: median {np.median(ql):.0f} "
               f"p90 {np.percentile(ql,90):.0f} max {ql.max()}")

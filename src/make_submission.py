@@ -37,10 +37,10 @@ def generate_submission(model, tokenizer, test_data, cfg, device, eos_id, sentin
         width = max(len(e) for e in encs)
         pad_id = eos_id if eos_id is not None else 0
         if is_encdec:
-            padded = [e + [pad_id] * (width - len(e)) for e in encs]   # RIGHT pad
+            padded = [e + [pad_id] * (width - len(e)) for e in encs]
             mask = [[1] * len(e) + [0] * (width - len(e)) for e in encs]
         else:
-            padded = [[pad_id] * (width - len(e)) + e for e in encs]   # LEFT pad
+            padded = [[pad_id] * (width - len(e)) + e for e in encs]
             mask = [[0] * (width - len(e)) + [1] * len(e) for e in encs]
 
         x = torch.tensor(padded, dtype=torch.long, device=device)
@@ -55,7 +55,7 @@ def generate_submission(model, tokenizer, test_data, cfg, device, eos_id, sentin
             if eos_id is not None and eos_id in seq:
                 seq = seq[:seq.index(eos_id)]
             trunc = truncate_words(tokenizer.decode(seq), 128)
-            preds[k] = {"text": trunc}          # submission requires this nesting
+            preds[k] = {"text": trunc}
             word_counts.append(len(trunc.split()))
 
     return preds, word_counts
@@ -93,7 +93,6 @@ if __name__ == "__main__":
         test_data = json.load(f)
     print(f"{len(test_data)} test prompts")
 
-    # prompt-length check: left truncation silently drops the START of a prompt
     lens = sorted(len(tokenizer.encode(v["text"]).ids) for v in test_data.values())
     limit = args.block_size - args.max_new_tokens
     n_over = sum(1 for l in lens if l > limit)
@@ -155,7 +154,6 @@ if __name__ == "__main__":
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(pred_path, arcname="prediction.json")
 
-    # verify the archive layout is what Codabench expects
     with zipfile.ZipFile(zip_path) as z:
         names = z.namelist()
     assert names == ["prediction.json"], f"FATAL: bad archive layout {names}"

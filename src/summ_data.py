@@ -1,18 +1,3 @@
-"""Phase 6 data: long documents -> long summaries, both over the 1024 ceiling.
-
-Documents median 3,656 tokens (97% exceed 1024); summaries median 749. Neither
-side fits, so the unit of training is a CHUNK PAIR: the document is split into
-max_src-token chunks and the reference summary is split proportionally, giving
-~5.4 pairs per document and ~38k pairs from 7,030 documents. At inference the
-per-chunk summaries are concatenated in order.
-
-This assumes summary content is ALIGNED with document order -- true for legal
-judgments, where a summary follows facts -> arguments -> holding in the order
-the judgment presents them. Stated because it is an assumption, not a fact, and
-the chunk-alignment quality is what the hierarchical alternative would improve.
-
-Empty summaries exist in train (min 0 tokens) and are dropped.
-"""
 import os, json, random
 import torch
 from summ_model import BOS_ID, EOS_ID
@@ -64,7 +49,7 @@ def collate(chunk, device, arch, max_src=MAX_SRC, max_tgt=512):
     tg = torch.full((len(rows), n), -100, dtype=torch.long)
     for i, (r, sp) in enumerate(zip(rows, splits)):
         ids[i, :len(r)] = torch.tensor(r); am[i, :len(r)] = 1
-        tg[i, sp:len(r)] = torch.tensor(r[sp:])     # loss on summary only
+        tg[i, sp:len(r)] = torch.tensor(r[sp:])
     return {"ids": ids.to(device), "attn_mask": am.to(device),
             "targets": tg.to(device),
             "split": torch.tensor(splits, device=device)}
@@ -95,13 +80,12 @@ def load_raw(split):
 
 
 def load_split(split):
-    """split in {train, dev, test}. train/dev are a deterministic partition."""
     if split == "test":
         return load_raw("test")
     docs = [d for d in load_raw("train")
             if d.get("summary") and d["summary"].strip()
             and d.get("document") and d["document"].strip()]
-    docs.sort(key=lambda d: str(d["id"]))          # stable before shuffling
+    docs.sort(key=lambda d: str(d["id"]))
     rng = random.Random(SPLIT_SEED)
     idx = list(range(len(docs)))
     rng.shuffle(idx)
@@ -112,11 +96,6 @@ def load_split(split):
 
 
 def chunk_pairs(doc_ids, sum_ids, max_src=MAX_SRC, max_tgt=MAX_TGT):
-    """Split a document into chunks and its summary proportionally.
-
-    The summary is divided in the same ratio as the document, so chunk i gets
-    the slice of the summary that corresponds to its share of the source.
-    """
     n_chunks = max(1, -(-len(doc_ids) // max_src))
     per_tgt = max(1, -(-len(sum_ids) // n_chunks)) if sum_ids else 0
     out = []
@@ -130,7 +109,6 @@ def chunk_pairs(doc_ids, sum_ids, max_src=MAX_SRC, max_tgt=MAX_TGT):
 
 
 class SummPairs:
-    """Chunk pairs for training; one entry per (document chunk, summary slice)."""
 
     def __init__(self, docs, tok, max_src=MAX_SRC, max_tgt=MAX_TGT,
                  batch=64, with_target=True):

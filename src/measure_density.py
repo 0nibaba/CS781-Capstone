@@ -1,17 +1,3 @@
-"""
-Separator density per source: how many documents does a training window
-actually contain?
-
-This is the independent variable for the document-masking experiment.
-Prediction P1 says the effect should track boundary density, so this
-measures what that density really is — as opposed to what the raw
-document-length distribution suggests.
-
-Note: *_short.bin files (sub-200-word documents) are NOT trained on, so
-high.bin contains only the longer High Courts documents. Its density may
-therefore be lower than the 282-word overall median would imply.
-"""
-
 import os
 import json
 import numpy as np
@@ -20,10 +6,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOKENS = os.path.join(ROOT, "training_data/tokens")
 
 BLOCK = 1024
-VAL_TOKENS = 5_000_000        # must match MemmapDataLoader
+VAL_TOKENS = 5_000_000
 N_WINDOWS = 2000
 SEED = 1899
-EOS = 0                       # from meta.json
+EOS = 0
 
 SOURCES = ["acts", "high", "supreme", "tribunal"]
 
@@ -39,7 +25,7 @@ def main():
 
         starts = rng.integers(0, train_end - BLOCK - 1, size=N_WINDOWS)
         seps = np.array([int((arr[s:s + BLOCK] == EOS).sum()) for s in starts])
-        docs = seps + 1        # n separators -> n+1 document fragments
+        docs = seps + 1
 
         rows[src] = {
             "tokens": len(arr),

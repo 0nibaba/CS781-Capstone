@@ -1,19 +1,3 @@
-"""
-Fine-tune a Phase 1 model for Rhetorical Role prediction.
-
-Train on the 80 provided training documents, select on dev macro-F1.
-
-CAVEAT ON DEV: only 10 documents / 2,142 sentences, and Dissent and
-PrecedentOverruled never appear in it — so dev macro-F1 is averaged over 11
-labels where the test set will use up to 13. Dev numbers are therefore
-optimistic relative to the leaderboard and are for RANKING experiments, not
-for predicting the score.
-
-Reference points from rr_metrics.py (dev):
-  majority class       macro-F1 0.029, accuracy 0.188
-  copy previous gold   macro-F1 0.754, accuracy 0.884   (oracle, not achievable)
-"""
-
 import os
 import csv
 import json
@@ -47,9 +31,6 @@ def get_lr(step, warmup, total, max_lr, min_lr):
 
 
 def class_weights(ds, device, scheme="inv_sqrt"):
-    """Fact is 28% of CL and PrecedentOverruled has 3 examples in total, but
-    macro-F1 weights them equally. inv_sqrt sits between unweighted and full
-    inverse frequency, which over-corrects on labels this rare."""
     c = torch.zeros(N_LABELS)
     for it in ds.items:
         for si in range(it["pred_from"], it["pred_to"]):
@@ -67,7 +48,6 @@ def class_weights(ds, device, scheme="inv_sqrt"):
 
 @torch.no_grad()
 def predict(model, ds, batch_size, device, ctx):
-    """Reassemble per-document label sequences from block predictions."""
     model.eval()
     out = {did: [None] * len(d["text"]) for did, d in ds.docs.items()}
 

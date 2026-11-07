@@ -1,12 +1,3 @@
-"""CJPE data: long judgments reduced to fixed-size windows.
-
-Median case is 2669 train / 3800 dev tokens against a 1024-token ceiling
-(Phase 1 used learned absolute positions), so every representation choice here
-is about WHICH 1024 tokens the model sees.
-
-NOTE: test.json ships a 'label' key. Test labels are supposed to be private.
-load_split drops it on the test split so it cannot leak into anything.
-"""
 import os, json
 import torch
 
@@ -38,7 +29,6 @@ def load_split(split):
 
 
 def select(ids, mode, max_len=MAX_LEN):
-    """Which max_len tokens of a judgment the model gets to see."""
     if len(ids) <= max_len:
         return ids
     if mode == "head":

@@ -1,9 +1,3 @@
-"""
-Sanity check: a tiny model must be able to memorize a single paragraph.
-If loss does not approach zero, the model is wired wrong — find out here,
-in 60 seconds, rather than after a six-hour run.
-"""
-
 import torch
 import argparse
 from tokenizers import Tokenizer
@@ -59,7 +53,6 @@ def main(args):
 
     final = loss.item()
 
-    # greedy continuation from the first few tokens
     model.eval()
     prompt_len = 5
     out = model.generate(x[:, :prompt_len], max_new_tokens=len(ids) - prompt_len,

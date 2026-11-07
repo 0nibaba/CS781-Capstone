@@ -93,17 +93,7 @@ def get_lr(step, warmup, max_steps, max_lr, min_lr):
 @torch.no_grad()
 def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
                   block_size, arch="decoder", batcher=None):
-    """
-    Returns aggregate and per-source losses, plus loss as a function of
-    position within the block.
 
-    For arch="prefix_lm" only positions in [SPLIT_EVAL*T - 1, T-2] carry loss
-    during training. Unsupervised positions are set to NaN rather than being
-    averaged in, so the per-position curves are not silently misread and the
-    reported loss is over supervised positions only — i.e. what the objective
-    actually optimises. This is NOT directly comparable to the decoder's
-    all-positions loss; see decisions.md.
-    """
     model.eval()
     out = {}
 
@@ -119,7 +109,6 @@ def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
         losses[k] = loss.item()
     out["train"] = losses.mean().item()
 
-    # supervised-position mask, prefix_lm only
     sup = None
     if arch == "prefix_lm":
         s = int(SPLIT_EVAL * block_size)
@@ -128,7 +117,7 @@ def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
 
     dl.eval_rng.manual_seed(1337)
     if arch == "encdec":
-        batcher.eval_rng.seed(1337)          # BOTH RNGs, or the val curve drifts
+        batcher.eval_rng.seed(1337)
 
     out["val_sources"] = {}
     out["pos_loss_sources"] = {}
@@ -147,7 +136,7 @@ def estimate_loss(model, dl, batch_size, train_iters, val_iters, ctx, device,
                     _, loss = model(e, d, targets=t,
                                     enc_pad_mask=em, dec_pad_mask=dm)
                 ls[k] = loss.item()
-                continue        # no per-position curve: targets are variable length
+                continue
 
             X, Y = dl.get_batch("val", batch_size, device, source=src)
             with ctx:
@@ -292,7 +281,6 @@ def train():
 
     step, best_val, tokens_seen = 0, float("inf"), 0
 
-    # load state BEFORE compiling
     if args.resume:
         ckpt_path = os.path.join(run_dir, "ckpt_latest.pt")
         if os.path.exists(ckpt_path):

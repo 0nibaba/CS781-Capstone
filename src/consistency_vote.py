@@ -1,19 +1,3 @@
-"""
-Document-level label consistency.
-
-The role analysis found that within a single document, a surface string NEVER
-takes two roles: 0 of 745 document-string pairs. The model is free to violate
-that and may well do so.
-
-This measures the model's inconsistency and then applies majority voting:
-every predicted span with the same surface string in the same document is
-forced to the most-predicted label. A pure decode-time change, no retraining —
-the same shape of gain as the bridge-3 fix (+0.10 macro-F1).
-
-Measurement comes first: if the model is already consistent, voting does
-nothing and the idea should be dropped rather than implemented.
-"""
-
 import os
 import json
 import argparse
@@ -35,7 +19,6 @@ def key(text, span):
 
 
 def measure(pred, docs):
-    """How often does the model give one string two labels in one document?"""
     incons = 0
     total = 0
     spread = Counter()
@@ -55,9 +38,6 @@ def measure(pred, docs):
 
 
 def vote(pred, docs, min_count=1):
-    """Force every mention of a string in a document to the majority label.
-    Ties go to the label with the longest total span, as a deterministic
-    tiebreak rather than dict order."""
     out = {}
     for did, spans in pred.items():
         groups = defaultdict(list)
@@ -94,7 +74,6 @@ def main():
     pred = {d: decode(saved[d]["tags"], offsets[d], docs[d], **BEST_DECODE)
             for d in docs if d in saved}
 
-    # ---- is the model inconsistent at all? ----
     incons, total, spread, examples = measure(pred, docs)
     print("=" * 66)
     print("model inconsistency")
@@ -111,7 +90,6 @@ def main():
     for did, k, c in examples:
         print(f"    {k[:40]!r:<44} {c}")
 
-    # ---- does voting help? ----
     print("\n" + "=" * 66)
     print("effect of majority voting")
     print("=" * 66)
@@ -135,7 +113,6 @@ def main():
     print(f"\n  best: {best[2]}  {best[1]:.4f} ({best[1]-mf0:+.4f})")
     report(best[0], gold, "per label, after voting")
 
-    # which labels moved?
     _, _, _, per0, _ = strict_scores(pred, gold)
     _, _, _, per1, _ = strict_scores(best[0], gold)
     print(f"\n  {'label':<12} {'before':>8} {'after':>8} {'delta':>8}")

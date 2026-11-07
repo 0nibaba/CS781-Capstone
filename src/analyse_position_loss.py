@@ -1,15 +1,3 @@
-"""
-Position-within-block loss: does document masking help or hurt, and where?
-
-Tests pre-registered prediction P2 (benefit should grow at later positions,
-since contamination accumulates) and the pre-registered early-document
-confound (masking removes context at the start of each packed fragment,
-so loss there should rise even if the mechanism is sound).
-
-Outputs delta curves (arm B minus arm A; positive = masking is worse)
-overall and per source, plus figures to logs/.
-"""
-
 import os
 import numpy as np
 import matplotlib
@@ -23,9 +11,8 @@ LOGS = os.path.join(ROOT, "logs")
 ARM_A = "arm_a_baseline"
 ARM_B = "arm_b_docmask"
 SOURCES = ["acts", "high", "supreme", "tribunal"]
-SMOOTH = 32          # rolling mean window; raw per-position loss is noisy
+SMOOTH = 32
 
-# measured separator density, for context in the report
 DENSITY = {"high": 1.99, "tribunal": 1.49, "supreme": 1.22, "acts": 1.12}
 
 
@@ -52,7 +39,7 @@ def load(run, step):
 def trend(delta):
     """Slope of delta vs position. Negative => masking improves with depth."""
     x = np.arange(len(delta))
-    return np.polyfit(x, delta, 1)[0] * len(delta)   # change across the block
+    return np.polyfit(x, delta, 1)[0] * len(delta)
 
 
 def main():
@@ -68,7 +55,6 @@ def main():
     a, b = load(ARM_A, step), load(ARM_B, step)
     print(f"=== detailed analysis at step {step} ===\n")
 
-    # ---- overall ----
     d = b["overall"] - a["overall"]
     T = len(d)
     print(f"{'':<10} {'arm A':>8} {'arm B':>8} {'delta':>8} "
@@ -78,7 +64,6 @@ def main():
           f"{d.mean():>+8.4f} {d[:64].mean():>+9.4f} {d[-64:].mean():>+9.4f} "
           f"{trend(d):>+8.4f}")
 
-    # ---- per source ----
     for src in SOURCES:
         ka, kb = a[f"src_{src}"], b[f"src_{src}"]
         ds = kb - ka
@@ -89,7 +74,6 @@ def main():
     print("\npositive delta = masking is WORSE")
     print("negative slope = masking improves with position (supports P2)")
 
-    # ---- figure 1: delta vs position, per source ----
     fig, ax = plt.subplots(figsize=(9, 5))
     x = np.arange(T - SMOOTH + 1) + SMOOTH // 2
     ax.axhline(0, color="k", lw=0.8)
@@ -107,7 +91,6 @@ def main():
     p1 = os.path.join(LOGS, "docmask_delta_by_position.png")
     fig.savefig(p1, dpi=150)
 
-    # ---- figure 2: raw loss curves, both arms ----
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.plot(x, smooth(a["overall"]), lw=2, label="arm A (no mask)")
     ax.plot(x, smooth(b["overall"]), lw=2, label="arm B (doc mask)")
@@ -120,7 +103,6 @@ def main():
     p2 = os.path.join(LOGS, "loss_by_position.png")
     fig.savefig(p2, dpi=150)
 
-    # ---- figure 3: is the gap stable over training? ----
     fig, ax = plt.subplots(figsize=(9, 5))
     means, firsts, lasts = [], [], []
     for s in common:

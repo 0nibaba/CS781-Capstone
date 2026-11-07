@@ -1,10 +1,3 @@
-"""
-Build a held-out pool, strictly disjoint from the tokenizer training sample.
-Serves two purposes:
-  - eval_sample.json  : per-source text for fertility measurement
-  - heldout_pool.json : longer docs, for the 512/128 BERTScore eval set later
-"""
-
 import os
 import json
 import hashlib
@@ -21,14 +14,13 @@ FILES = {
     "tribunal": f"{RAW}/train_tribunals.json",
 }
 
-# must exceed whatever your tokenizer sampler consumed from each file
 SKIP_BYTES = {"acts": 150_000_000, "supreme": 200_000_000,
               "high": 80_000_000,  "tribunal": 80_000_000}
 
-N_EVAL     = 300      # docs per source for fertility
-N_POOL     = 500      # docs per source for the generation eval
-MIN_WORDS  = 300      # fertility sample: avoid stubs
-POOL_WORDS = 700      # generation eval needs 512 + 128 + slack
+N_EVAL     = 300
+N_POOL     = 500
+MIN_WORDS  = 300
+POOL_WORDS = 700
 SEED = 1234
 
 
@@ -61,7 +53,7 @@ for name, path in FILES.items():
 
         consumed += len(text.encode("utf-8"))
         if consumed < SKIP_BYTES[name]:
-            continue                       # region the tokenizer may have seen
+            continue
 
         w = len(text.split())
         if w >= POOL_WORDS and len(cands_pool) < N_POOL * 4:

@@ -1,9 +1,3 @@
-"""Majority-vote ensemble over several RR checkpoints.
-
-Errors from models trained with different objectives (plain / CRF / class-weighted
-/ LoRMA) are partly decorrelated, so a per-sentence vote should beat any single
-member. Ties go to the first checkpoint listed, so list them best-first.
-"""
 import os, json, argparse, zipfile, datetime
 from collections import Counter
 import torch
@@ -72,7 +66,6 @@ def main():
             votes = [m[did][si] for m in members]
             top = Counter(votes).most_common()
             best = max(c for _, c in top)
-            # tie -> earliest listed checkpoint among the tied labels
             tied = {l for l, c in top if c == best}
             pick = next(v for v in votes if v in tied)
             seq.append(pick)

@@ -1,17 +1,3 @@
-"""Chunk-level prediction with document-level aggregation (brief 11.1).
-
-56% of dev documents fit in one 1024-token window, so 44% are truncated and any
-statute cited past the cutoff is unreachable. This runs the SAME trained model
-over every chunk of a document and aggregates the per-chunk probabilities.
-
-Hypothesis: statutory evidence is LOCAL -- a statute is cited in one place, not
-spread through the judgment -- so max over chunks should beat mean, which
-dilutes a confident local detection with chunks that correctly report absence.
-Both are measured, plus noisy-or as a middle ground.
-
-Thresholds are re-tuned on dev per aggregator, since changing the aggregator
-changes the probability scale.
-"""
 import os, json, argparse, zipfile, datetime
 
 import numpy as np
@@ -44,7 +30,6 @@ def chunks_of(ids, max_len, stride, max_chunks):
 @torch.no_grad()
 def doc_probs(model, docs, tok, device, ctx, max_len, stride, max_chunks,
               batch_size):
-    """-> (N, n_agg, L) probabilities, aggregators in order max/mean/noisyor."""
     flat, owner = [], []
     for i, d in enumerate(docs):
         for c in chunks_of(tok.encode(d["text"]).ids, max_len, stride,

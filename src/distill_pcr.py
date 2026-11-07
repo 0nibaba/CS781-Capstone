@@ -1,24 +1,3 @@
-"""Knowledge distillation for PCR (compulsory).
-
-Teacher: pcr_full (decoder, full fine-tune, dev F1@7 0.3346).
-Student: same architecture at 6 of 12 layers, initialised from every other
-teacher layer.
-
-Retrieval-specific signal: the student matches the teacher's SIMILARITY
-DISTRIBUTION over each batch -- KL between softmax(teacher q.c / T) and the
-student's, which is the ranking signal rather than a class posterior. Combined
-with the student's own InfoNCE against the gold positive.
-
-Cross-phase series of the KD term's contribution, and the two factors that
-have predicted it since Phase 4 (how much truncation costs x enough data):
-  Ph3 RR   cost 0.0710 / 80 docs      +0.0050
-  Ph4 CJPE cost 0.0567 / 37,387       +0.0354
-  Ph5 LSI  cost 0.0057 / 42,750       +0.0083
-  Ph6 Summ cost 0.0017 / 6,528        +0.0004
-Here there are only 5,308 training pairs, so the data factor is weak. Registered
-prediction: the effect is small (< +0.01) REGARDLESS of what halving the depth
-costs, because there is not enough data to exploit a softer target.
-"""
 import os, copy, json, math, argparse
 
 import numpy as np

@@ -1,28 +1,3 @@
-"""
-Data pipeline for Rhetorical Role prediction.
-
-STRUCTURE THAT DRIVES THE DESIGN: 94% of adjacent sentence pairs in CL share
-a label (75% in IT). Labels come in long runs, so this is sequence
-segmentation, not independent sentence classification. Blocks therefore hold
-many consecutive sentences and are predicted jointly.
-
-SENTENCE REPRESENTATION: a separator token is appended AFTER each sentence and
-its hidden state is that sentence's representation. After, not before, so a
-causal model has read the whole sentence before the marker — the Phase 2
-comparison found the causal decoder strongest, so the scheme must work for it.
-mean-pooling over the sentence's own tokens is offered as an alternative, since
-the brief lists sentence representation as something to investigate.
-
-CONTEXT: each block carries lead-in sentences that are encoded but NOT
-predicted, so every sentence is predicted from a block where it has left
-context. Each sentence is predicted exactly once.
-
-DOMAIN: CL and IT are trained jointly with a domain marker token, since 40
-documents per domain is very little. Their label distributions differ
-(Fact 28% vs 18%, Statute 3.5% vs 12%, Dissent CL-only), so the model is given
-the domain rather than having to infer it.
-"""
-
 import os
 import json
 
@@ -35,11 +10,11 @@ TEST_DIR = os.path.join(ROOT, "test_data/Phase_3_RR/Test")
 TOKENIZER = os.path.join(ROOT, "checkpoints/tokenizers/legal_32000.json")
 
 IGNORE = -100
-PAD_ID = 0                      # <|endoftext|>, masked out anyway
+PAD_ID = 0
 
 MAX_LEN = 1024
-CONTEXT_SENTS = 8               # lead-in sentences, encoded but not predicted
-MAX_SENT_TOKENS = 256           # a few sentences run to 1186 tokens; truncate
+CONTEXT_SENTS = 8
+MAX_SENT_TOKENS = 256
 
 with open(os.path.join(TRAIN_DIR, "label_vocab.json")) as f:
     LABEL2ID = json.load(f)
@@ -52,8 +27,6 @@ DOMAIN_TOKEN = {"CL": "<|unused1|>", "IT": "<|unused2|>"}
 
 
 def load_docs(path, domain):
-    """Normalise both shapes into [{id, domain, text, labels?}].
-    train/dev are lists of objects; test is {doc_id: [sentences]}."""
     with open(path) as f:
         d = json.load(f)
     if isinstance(d, dict):
@@ -62,7 +35,6 @@ def load_docs(path, domain):
 
 
 def load_split(split, domains=("CL", "IT")):
-    """split in {train, dev, test}."""
     out = []
     for dom in domains:
         if split == "test":
@@ -75,7 +47,6 @@ def load_split(split, domains=("CL", "IT")):
 
 
 class RRBlocks:
-    """Flattened list of sentence-blocks across a set of documents."""
 
     def __init__(self, docs, tok, max_len=MAX_LEN, context=CONTEXT_SENTS,
                  max_sent=MAX_SENT_TOKENS, ctx_frac=0.34):
@@ -87,18 +58,15 @@ class RRBlocks:
 
         for d in docs:
             dom_id = tok.token_to_id(DOMAIN_TOKEN[d["domain"]])
-            # tokenize each sentence once; truncate the rare very long ones
             sent_ids = [e.ids[:max_sent] for e in tok.encode_batch(d["text"])]
             labels = [LABEL2ID[l] for l in d["labels"]] if d.get("labels") \
                 else [IGNORE] * len(sent_ids)
             n = len(sent_ids)
 
-            start = 0                      # first sentence this block predicts
+            start = 0
             while start < n:
                 budget = max_len - 1
 
-                # 1. reserve room for lead-in context, capped at a third of the
-                #    block so a long preceding sentence cannot starve prediction
                 ctx_from, ctx_cost, cap = start, 0, int(budget * ctx_frac)
                 while ctx_from > 0 and start - ctx_from < context:
                     need = len(sent_ids[ctx_from - 1]) + 1
@@ -108,7 +76,6 @@ class RRBlocks:
                     ctx_from -= 1
                 budget -= ctx_cost
 
-                # 2. fill the predicted region with what remains
                 end = start
                 while end < n:
                     need = len(sent_ids[end]) + 1
@@ -120,8 +87,6 @@ class RRBlocks:
                         break
                 assert end > start, "no room to predict even one sentence"
 
-                # 3. build the block; context is ENCODED but gets no marker,
-                #    so prediction slots line up with [pred_from, pred_to)
                 ids = [dom_id]
                 markers = []
                 for i in range(ctx_from, end):
@@ -148,12 +113,6 @@ class RRBlocks:
 
 
 def collate(items, device):
-    """
-    Returns input_ids (B,T), attn_mask (B,T), marker_pos (B,S), marker_mask
-    (B,S), labels (B,S). S is the max number of PREDICTED sentences in the
-    batch; only predicted sentences get a marker slot, so the head never sees
-    context sentences.
-    """
     B = len(items)
     T = max(len(it["input_ids"]) for it in items)
     S = max(it["pred_to"] - it["pred_from"] for it in items)
@@ -188,8 +147,6 @@ def batches(ds, batch_size, device, shuffle=True, seed=None):
         chunk = [ds.items[j] for j in idx[i:i + batch_size]]
         yield chunk, collate(chunk, device)
 
-
-# ---------------- tests ----------------
 
 if __name__ == "__main__":
     tok = Tokenizer.from_file(TOKENIZER)
@@ -258,7 +215,6 @@ if __name__ == "__main__":
     print(f"  labels: {int((lab != IGNORE).sum())} supervised, "
           f"all within range: "
           f"{bool(((lab == IGNORE) | ((lab >= 0) & (lab < N_LABELS))).all())}")
-    # the gathered token must be a separator for every valid marker
     g = ids.gather(1, pos)
     ok = ((g == sep) | (pmask == 0)).all()
     print(f"  every valid marker gathers a separator token: {bool(ok)}")

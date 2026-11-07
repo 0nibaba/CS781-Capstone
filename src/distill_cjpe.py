@@ -1,21 +1,3 @@
-"""Knowledge distillation for CJPE (compulsory).
-
-Teacher: cjpe_tail, full fine-tune, dev macro-F1 0.7124.
-Student: same architecture truncated to 6 of 12 layers, initialised from every
-other teacher layer. Head copied.
-
-Two arms from ONE initialisation: KL against the teacher's distribution plus
-hard-label CE, versus hard labels alone. The control arm is what isolates the
-effect of distillation from the effect of being a smaller model.
-
-Phases 2 and 3 both measured the KL term at ~+0.004 -- indistinguishable from
-zero. CJPE differs in two ways that could change that: 37k training examples
-instead of 70-80, and a 2-class output where a soft distribution carries much
-less information than it did over 13 or 29 classes. Prediction registered
-before running: the effect stays near zero, and if anything is SMALLER here,
-because a 2-class soft target is almost fully described by the hard label.
-"""
-
 import os, copy, json, time, argparse
 
 import torch

@@ -1,22 +1,3 @@
-"""
-Windowing for L-NER.
-
-Documents are far longer than the 1024-token context (median 5,542, max
-23,781), so each becomes several overlapping windows. With window 1024 and
-stride 512 consecutive windows overlap by 512 tokens.
-
-PREDICT-THE-MIDDLE: each window predicts only its central region; the outer
-256 tokens on each side exist as context only and their predictions are
-discarded — except at document edges, where there is nothing beyond. Every
-token is therefore predicted exactly once, by the window where it has the
-most context on both sides.
-
-This matters because WIT vs APP is decided by narrative role, not surface
-form, so a token with no left context is nearly unlabellable.
-
-Cost: at stride 512 each token is processed twice.
-"""
-
 import os
 import json
 from collections import Counter
@@ -32,15 +13,10 @@ TOKENIZER = os.path.join(ROOT, "checkpoints/tokenizers/legal_32000.json")
 
 WINDOW = 1024
 STRIDE = 256
-MARGIN = (WINDOW - STRIDE) // 2       # 256: discarded at each side
+MARGIN = (WINDOW - STRIDE) // 2
 
 
 def make_windows(n_tokens, window=WINDOW, stride=STRIDE):
-    """
-    Yields (start, end, keep_from, keep_to) in token indices.
-    Keep regions tile [0, n_tokens) exactly once, by construction: each
-    window's keep region starts where the previous one ended.
-    """
     if n_tokens <= window:
         yield (0, n_tokens, 0, n_tokens)
         return
@@ -59,10 +35,6 @@ def make_windows(n_tokens, window=WINDOW, stride=STRIDE):
 
 
 def encode_document(text, entities, tok, window=WINDOW, stride=STRIDE):
-    """
-    Returns (windows, offsets, n_tokens) where each window is a dict with
-    token ids, tag ids, and the keep region (in window-local coordinates).
-    """
     enc = tok.encode(text)
     offsets, ids = enc.offsets, enc.ids
     tags, _ = spans_to_bio(entities, offsets, len(ids)) if entities is not None \
@@ -74,15 +46,13 @@ def encode_document(text, entities, tok, window=WINDOW, stride=STRIDE):
             "input_ids": ids[s:e],
             "tags": tags[s:e],
             "tok_start": s,
-            "keep_from": kf - s,         # window-local
+            "keep_from": kf - s,
             "keep_to": kt - s,
         })
     return out, offsets, len(ids)
 
 
 def merge_windows(windows, n_tokens, pred_key="tags"):
-    """Stitch per-window predictions back into one document-length sequence,
-    taking each token from the window responsible for it."""
     full = [O_ID] * n_tokens
     for w in windows:
         s = w["tok_start"]
@@ -90,8 +60,6 @@ def merge_windows(windows, n_tokens, pred_key="tags"):
             full[s + i] = w[pred_key][i]
     return full
 
-
-# ---------- tests ----------
 
 def load(name):
     with open(os.path.join(TRAIN, name)) as f:
@@ -131,7 +99,6 @@ def main():
         wins, offsets, n_tok = encode_document(text, ents, tok)
         n_windows += len(wins)
 
-        # how many entities are cut by a window edge they are not kept by?
         for e in ents:
             tr = char_span_to_tokens(offsets, e[0], e[1])
             if tr is None:

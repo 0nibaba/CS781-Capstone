@@ -1,24 +1,3 @@
-"""
-Is APP/RESP/WIT disambiguation tractable from local context?
-
-Those three labels plus R.COUNSEL average 0.11 F1 and carry a third of
-macro-F1. All four are person names; which one a name is depends on narrative
-role, not surface form. The confusion matrix shows the model finding the names
-and assigning the roles nearly at random (RESP->APP 19, APP->RESP 16,
-RESP->WIT 17, R.COUNSEL->A.COUNSEL 55).
-
-The question this answers: WHERE is the disambiguating signal?
-
-  - if roles cluster by document position (appellants in the header before
-    'Versus'), the signal is positional and a position feature would help
-  - if roles are marked locally ('(PW-6)' after a witness, '(A-1)' after an
-    accused), the signal is in a short window and the model should be able to
-    learn it — failure would point at the 70-document training set, not the
-    architecture
-  - if the same name takes different roles in different documents with no
-    local marker, the signal is long-range and local context cannot fix it
-"""
-
 import os
 import re
 import json
@@ -30,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRAIN = os.path.join(ROOT, "training_data/raw/Phase_2_LNER/Train")
 
 ROLES = ["APP", "RESP", "WIT", "A.COUNSEL", "R.COUNSEL", "JUDGE"]
-WINDOW = 60          # characters of context either side
+WINDOW = 60
 
 
 def load(fold):
@@ -48,7 +27,6 @@ def main():
         docs.update(d)
         gold.update(g)
 
-    # ---- 1. where in the document does each role appear? ----
     print("=" * 70)
     print("relative position in the document (0 = start, 1 = end)")
     print("=" * 70)
@@ -69,7 +47,6 @@ def main():
               f"{np.median(a):>7.2f} {np.percentile(a,90):>6.2f} "
               f"{100*(a < 0.1).mean():>14.1f}%")
 
-    # ---- 2. local markers ----
     print("\n" + "=" * 70)
     print("characteristic context (words within 60 chars, by role)")
     print("=" * 70)
@@ -85,7 +62,6 @@ def main():
             ctx_before[e[2]].update(re.findall(r"[a-z]{3,}", b))
             ctx_after[e[2]].update(re.findall(r"[a-z]{3,}|\(\w+-?\d*\)", a))
 
-    # words distinctive to one role rather than common to all
     allb = Counter()
     for c in ctx_before.values():
         allb.update(c)
@@ -107,7 +83,6 @@ def main():
         print("    after: ", ", ".join(
             f"{k} ({v})" for _, k, v in distinctive(ctx_after[lab], alla)))
 
-    # ---- 3. the (A-1) / (PW-6) markers specifically ----
     print("\n" + "=" * 70)
     print("bracketed markers immediately after the entity")
     print("=" * 70)
@@ -131,7 +106,6 @@ def main():
                         for k, v in c.most_common(4))
         print(f"  {lab:<12} {n:>5}  {top}")
 
-    # ---- 4. does the same surface string take different roles? ----
     print("\n" + "=" * 70)
     print("ambiguity of the surface string itself")
     print("=" * 70)
@@ -153,7 +127,6 @@ def main():
     for k, v in sorted(amb.items(), key=lambda kv: -sum(kv[1].values()))[:8]:
         print(f"    {k[:40]!r:<44} {dict(v)}")
 
-    # ---- 5. within a document, is the role consistent? ----
     print("\n" + "=" * 70)
     print("within a single document, does one string ever take two roles?")
     print("=" * 70)

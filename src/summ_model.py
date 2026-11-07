@@ -1,26 +1,8 @@
-"""Summarizer wrapper over the Phase 1 architectures, with batched generation.
-
-Two input formats, because the architectures differ in where the source goes:
-
-  encdec     source -> encoder (up to 1024), summary -> decoder (up to 512)
-  decoder /  source and summary share one 1024 window, so the source is capped
-  prefix_lm  at 480 tokens and the summary at 512, joined by <|endoftext|>.
-  efficient
-
-That is a real confound: the encoder-decoder sees twice the source. It is
-inherent to a 1024-token position table and is stated rather than hidden.
-
-Generation obeys one hard constraint derived from the metric: BERTScore
-truncates at 512 RoBERTa tokens, and the lead-k curve rises monotonically to
-that cutoff (0.7981 at 128 -> 0.8300 at 512) and is exactly flat beyond. So EOS
-is suppressed until min_len and generation stops at max_len. Length is not a
-hyperparameter here; the metric fixes its optimum.
-"""
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-BOS_ID = 0          # <|endoftext|> doubles as BOS/EOS
+BOS_ID = 0
 EOS_ID = 0
 PAD_ID = 0
 
@@ -32,7 +14,6 @@ class Summarizer(nn.Module):
         self.arch = arch
         self.is_encdec = (arch == "encdec")
 
-    # ---------- training ----------
 
     def forward(self, batch):
         if self.is_encdec:
@@ -52,7 +33,6 @@ class Summarizer(nn.Module):
             tgt[:, 1:].reshape(-1), ignore_index=-100)
         return logits, loss
 
-    # ---------- generation ----------
 
     @torch.no_grad()
     def generate(self, batch, max_len=544, min_len=480, temperature=0.0,
@@ -64,7 +44,7 @@ class Summarizer(nn.Module):
               no_repeat_ngram):
         logits = logits.float()
         if step < min_len:
-            logits[:, EOS_ID] = float("-inf")       # fill the metric window
+            logits[:, EOS_ID] = float("-inf")
         if no_repeat_ngram and generated.size(1) >= no_repeat_ngram:
             n = no_repeat_ngram
             for b in range(generated.size(0)):
@@ -100,7 +80,7 @@ class Summarizer(nn.Module):
         return dec[:, 1:]
 
     def _gen_causal(self, batch, max_len, min_len, temperature, top_k, nrn):
-        ids = batch["ids"]                      # source + <|endoftext|>
+        ids = batch["ids"]
         B, src_len = ids.size()
         split = batch.get("split")
         out = torch.zeros(B, 0, dtype=torch.long, device=ids.device)

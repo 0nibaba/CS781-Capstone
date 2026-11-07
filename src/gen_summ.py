@@ -1,12 +1,3 @@
-"""Decoding study + submission writer for Phase 6.
-
-The model loops when EOS is suppressed past what it can actually say, so the
-decoding configuration trades three things against each other:
-  - length  (BERTScore recall rises monotonically to the 512-token cutoff)
-  - repetition (hurts precision)
-  - sampling diversity (breaks loops, risks incoherence)
-Measured on dev rather than argued about. Baseline: lead-512 = 0.8300.
-"""
 import os, json, time, argparse, zipfile, datetime
 
 import numpy as np

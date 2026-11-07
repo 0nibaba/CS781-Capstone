@@ -1,44 +1,13 @@
-"""
-Batching for the encoder-decoder architecture.
-
-Unlike the other three architectures, which return fixed (B, 1024) tensors,
-span corruption produces VARIABLE-LENGTH sequences: encoder inputs around 880
-tokens, decoder targets around 157 (and up to ~202 in long-terminal mode). So
-batches must be padded, and the loss must ignore padded target positions.
-
-DESIGN DECISIONS:
-
-1. CORRUPTION HAPPENS ON THE FLY, per batch item. Pre-corrupting would mean
-   every pass over the data sees the same corruption, which defeats the
-   objective. The cost is ~6 spans x 32 items x 8 micro-batches of Python work
-   per step; measured against a ~5 s step time this is negligible.
-
-2. PAD TO THE BATCH MAXIMUM. Sorting by length to reduce padding waste would
-   correlate batch composition with sequence length, which interacts badly
-   with the source-mixture sampler. The waste is small because lengths are
-   tightly clustered.
-
-3. MATCHED ON TOKENS READ, NOT SUPERVISED POSITIONS. The encoder reads 1024
-   tokens per sequence, the same as every other architecture, so the token
-   budget is comparable. But only ~157 decoder positions carry loss, against
-   1024 for the causal decoder — **roughly 6x less supervision per token
-   processed**, worse than prefix-LM's 5x. Matching supervised positions
-   instead would need ~6x the tokens, which the compute budget does not allow.
-   The confound is real and is reported.
-"""
-
 import random
 import numpy as np
 import torch
 
 from span_corruption import corrupt_sequence, EOS_ID
 
-PAD_ID = EOS_ID          # <|endoftext|>; padded positions are masked out anyway
+PAD_ID = EOS_ID
 
 
 class EncDecBatcher:
-    """Wraps a MemmapDataLoader and turns its raw windows into corrupted
-    encoder/decoder batches."""
 
     def __init__(self, dataloader, sentinel_ids, p=0.15, mean_span=25,
                  p_terminal=0.25, p_long_terminal=0.15, seed=1899):
@@ -49,7 +18,7 @@ class EncDecBatcher:
         self.p_terminal = p_terminal
         self.p_long_terminal = p_long_terminal
         self.rng = random.Random(seed)
-        self.eval_rng = random.Random(1337)      # fixed corruptions at eval
+        self.eval_rng = random.Random(1337)
 
     def _corrupt_batch(self, windows, rng):
         enc, din, dtg = [], [], []
@@ -63,7 +32,6 @@ class EncDecBatcher:
 
     @staticmethod
     def _pad(seqs, device):
-        """-> (padded ids, mask) with mask 1 on real positions."""
         B = len(seqs)
         T = max(len(s) for s in seqs)
         ids = np.full((B, T), PAD_ID, dtype=np.int64)
@@ -75,8 +43,6 @@ class EncDecBatcher:
                 torch.from_numpy(msk).to(device, non_blocking=True))
 
     def get_batch(self, split, batch_size, device, source=None):
-        """Returns enc_idx, enc_mask, dec_idx, dec_target, dec_mask."""
-        # the underlying loader gives (x, y); only x is needed, as the window
         x, _ = self.dl.get_batch(split, batch_size, "cpu", source=source)
         windows = x.tolist()
 
@@ -89,8 +55,6 @@ class EncDecBatcher:
         dec_tgt, dec_mask = self._pad(dtg, device)
         return enc_idx, enc_mask, dec_idx, dec_tgt, dec_mask
 
-
-# ---------------- tests ----------------
 
 if __name__ == "__main__":
     import os
@@ -141,8 +105,8 @@ if __name__ == "__main__":
     print("\n--- 4. eval is reproducible from a reset state ---")
 
     def fresh_val_batch():
-        b.eval_rng.seed(1337)          # corruption RNG
-        dl.eval_rng.manual_seed(1337)  # window-sampling RNG
+        b.eval_rng.seed(1337)
+        dl.eval_rng.manual_seed(1337)
         return b.get_batch("val", 4, "cpu", source="acts")
 
     a1, a2 = fresh_val_batch(), fresh_val_batch()

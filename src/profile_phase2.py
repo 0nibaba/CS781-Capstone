@@ -1,12 +1,3 @@
-"""
-What is in the Phase 2 L-NER data?
-
-Macro-F1 over 12 labels means rare entity types count as much as common ones,
-so the label distribution matters more than it would under micro-F1. Document
-length matters because the Phase 1 models have a fixed 1024-token block and
-legal judgments are long.
-"""
-
 import os
 import json
 from collections import Counter
@@ -47,7 +38,6 @@ def main():
     test = load(os.path.join(TEST, "fold3-text.json"))
     print(f"fold3 (test): {len(test)} documents\n")
 
-    # ---- document lengths ----
     print("=" * 70)
     print("document length")
     print("=" * 70)
@@ -62,7 +52,6 @@ def main():
         over = (toks > 1024).sum()
         print(f"    exceed 1024 tokens: {over} ({100*over/len(toks):.1f}%)")
 
-    # ---- entities ----
     print("\n" + "=" * 70)
     print("entities")
     print("=" * 70)
@@ -102,7 +91,6 @@ def main():
         print(f"  span length (tokens): median {pct(st,50)}  p90 {pct(st,90)}  "
               f"max {st.max()}")
 
-    # ---- sanity checks on the annotations themselves ----
     print("\n" + "=" * 70)
     print("annotation sanity")
     print("=" * 70)
@@ -135,7 +123,6 @@ def main():
     else:
         print("  no entity_text field to cross-check offsets against")
 
-    # ---- what an entity actually looks like ----
     print("\n" + "=" * 70)
     print("examples")
     print("=" * 70)

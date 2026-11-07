@@ -53,13 +53,6 @@ class CausalSelfAttention(nn.Module):
         self.use_flash = hasattr(F, "scaled_dot_product_attention")
 
     def forward(self, x, attn_mask=None, force_manual=False, layer_cache=None):
-        """
-        attn_mask: (B, T_prompt) — 1 for real tokens, 0 for left padding.
-                   Covers the PROMPT only; cached generated tokens are always
-                   real and are appended as 1s internally.
-        layer_cache: (k, v) each (B, n_head, T_cached, d_head), or None.
-        Returns (output, new_cache).
-        """
         B, T_new, C = x.size()
 
         q, k, v = self.c_attn(x).split(self.d_model, dim=2)
@@ -74,9 +67,6 @@ class CausalSelfAttention(nn.Module):
 
         T_total = k.size(2)
 
-        # rows T_total-T_new .. T_total, columns 0 .. T_total.
-        # prefill  -> the usual triangle
-        # decode   -> a single row of all-True (everything cached is in the past)
         keep = self.causal_mask[:, :, T_total - T_new:T_total, :T_total]
 
         if attn_mask is not None:
@@ -222,8 +212,6 @@ class GPT(nn.Module):
 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
-        """Simple unbatched/unpadded generation. Padded batches use the
-        standalone loop in local_eval.py."""
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.config.block_size:]
             logits, _ = self(idx_cond)
@@ -235,8 +223,6 @@ class GPT(nn.Module):
             idx = torch.cat((idx, nxt), dim=1)
         return idx
 
-
-# ---------------- checks ----------------
 
 def run_component_checks():
     torch.manual_seed(0)
@@ -321,7 +307,6 @@ def run_model_checks():
 
 
 def run_cache_checks():
-    """The cached and uncached paths must produce IDENTICAL logits."""
     print("\n--- 5. KV cache equivalence ---")
     torch.manual_seed(0)
     cfg = ModelConfig(n_layer=4, n_head=4, d_model=256, block_size=128, dropout=0.0)
@@ -330,10 +315,9 @@ def run_cache_checks():
     B, T_prompt, n_gen = 3, 20, 12
     idx = torch.randint(0, cfg.vocab_size, (B, T_prompt))
     mask = torch.ones(B, T_prompt, dtype=torch.long)
-    mask[:, :5] = 0                       # left padding
+    mask[:, :5] = 0
     idx[:, :5] = 0
 
-    # --- uncached: full forward every step, greedy ---
     seq_a = idx.clone()
     with torch.no_grad():
         for _ in range(n_gen):
@@ -341,7 +325,6 @@ def run_cache_checks():
                 [mask, torch.ones(B, seq_a.size(1) - T_prompt, dtype=torch.long)], 1))
             seq_a = torch.cat([seq_a, logits[:, -1, :].argmax(-1, keepdim=True)], 1)
 
-    # --- cached: prefill once, then one token at a time ---
     with torch.no_grad():
         logits, _, caches = model(idx, attn_mask=mask, use_cache=True)
         nxt = logits[:, -1, :].argmax(-1, keepdim=True)

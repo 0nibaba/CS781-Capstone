@@ -1,23 +1,3 @@
-"""
-Span-decoding strategies, compared on fixed model output.
-
-The error analysis showed 1,240 boundary-only errors (27% of gold entities),
-dominated by TRUNCATION of long spans: PREC shows 236 'end early' against 45
-'end late', with examples like
-
-    gold  'Girija Shanker v. State of U.P.(2004) 3 SCC 793'
-    pred  'Girija Shanker v.'
-
-The control confirmed 785/815 of those gold spans round-trip exactly, so the
-tokenizer can represent them — the BIO chain is breaking mid-entity. If
-bridging short gaps recovers a useful fraction, that is evidence a CRF or a
-span-based head (which predict the span atomically) would help more.
-
-Separately, 2,524 spurious predictions (43% of all predictions) include
-fragments like 'J', 'AN', 'C', 'Vs' — a minimum-length filter should remove
-many at little cost to recall.
-"""
-
 import os
 import json
 import argparse
@@ -33,11 +13,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def decode(tags, offsets, text, conf=None, lenient=True, bridge=0,
            min_chars=0, min_conf=0.0):
-    """
-    bridge    - allow up to this many non-matching tokens inside an entity
-    min_chars - drop spans shorter than this
-    min_conf  - drop spans whose mean token confidence is below this
-    """
     out = []
     n = len(tags)
     i = 0

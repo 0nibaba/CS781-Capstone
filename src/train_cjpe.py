@@ -1,15 +1,3 @@
-"""Fine-tune a Phase 1 model for Court Judgment Prediction.
-
-Train 37,387 cases (59/41) -> dev 1,988 cases (50/50). The class prior SHIFTS
-between train and evaluation, unlike Phase 3 where it did not. Every evaluation
-therefore reports macro-F1 both raw and after subtracting tau*log p_train(y)
-from the logits, which is the closed-form correction for exactly this shift.
-
-Dev is 1,988 balanced cases, so binomial sd on accuracy is about 0.011 and
-effects above ~0.02 are measurable -- a different regime from Phase 3's 10
-documents, where best-epoch selection alone inflated scores by ~0.03.
-"""
-
 import os, csv, json, math, time, argparse
 from collections import Counter
 

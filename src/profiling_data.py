@@ -1,10 +1,3 @@
-"""
-Phase 1 corpus profiling — streaming, constant memory.
-Answers: how many tokens per source, how long are documents,
-how many duplicates, how much is boilerplate.
-Output -> logs/corpus_profile.csv
-"""
-
 import os
 import json
 import hashlib
@@ -22,12 +15,11 @@ FILES = {
     "tribunal": f"{RAW}/train_tribunals.json",
 }
 
-WORDS_TO_TOKENS = 1.3     # placeholder until you measure real fertility
-SHORT_DOC = 200           # word threshold for "probably boilerplate"
+WORDS_TO_TOKENS = 1.3
+SHORT_DOC = 200
 
 
 def stream_records(path):
-    """Yield records whether the top level is a list or a dict."""
     with open(path, "rb") as f:
         first = f.read(1)
         f.seek(0)

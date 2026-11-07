@@ -1,11 +1,3 @@
-"""
-Predict fold3 and write a Codabench submission.
-
-Output format (section 8.3.5):
-    {"1128835": [[18, 40, "COURT"], [114, 162, "CASENO"], ...]}
-zipped with prediction.json at the archive root.
-"""
-
 import os
 import json
 import zipfile
@@ -30,7 +22,6 @@ def main():
     ap.add_argument("--base_checkpoint", required=True)
     ap.add_argument("--tag", required=True, help="names the output directory")
     ap.add_argument("--batch_size", type=int, default=8)
-    # decode: defaults are the tuned settings from decode_variants.py
     ap.add_argument("--lenient", action="store_true")
     ap.add_argument("--bridge", type=int, default=3)
     ap.add_argument("--min_chars", type=int, default=3)
@@ -100,7 +91,6 @@ def main():
                             lenient=args.lenient, bridge=args.bridge,
                             min_chars=args.min_chars)
 
-    # ---- validation ----
     print("\nvalidating...")
     assert set(preds) == set(docs), "document ids do not match the test set"
     n = sum(len(v) for v in preds.values())

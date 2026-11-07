@@ -1,16 +1,3 @@
-"""
-Strict macro-F1, matching the competition definition.
-
-A prediction counts only when start offset, end offset AND label all match
-exactly. Macro means per-label F1 averaged over the 12 labels, so the 184
-R.COUNSEL instances weigh as much as the 1,575 DATEs.
-
-A label absent from BOTH gold and predictions is excluded from the average;
-a label present in gold but never predicted scores 0 and IS included. That
-choice matters here because the rare labels are exactly the ones a model
-might never predict.
-"""
-
 from collections import defaultdict
 
 from bio_tagging import LABELS
@@ -24,10 +11,6 @@ def prf(tp, fp, fn):
 
 
 def strict_scores(pred, gold, labels=LABELS):
-    """
-    pred, gold: {doc_id: [[start, end, label], ...]}
-    Returns (macro_f1, macro_p, macro_r, per_label dict, micro tuple).
-    """
     tp = defaultdict(int)
     fp = defaultdict(int)
     fn = defaultdict(int)
@@ -45,7 +28,7 @@ def strict_scores(pred, gold, labels=LABELS):
     per = {}
     for lab in labels:
         if tp[lab] + fp[lab] + fn[lab] == 0:
-            continue                       # absent from gold and predictions
+            continue
         per[lab] = prf(tp[lab], fp[lab], fn[lab]) + (
             tp[lab], fp[lab], fn[lab])
 
@@ -78,8 +61,6 @@ def report(pred, gold, title=""):
 
 
 if __name__ == "__main__":
-    # the metric must give 1.0 when predictions are the gold spans, and the
-    # alignment ceiling when they are the round-tripped ones
     import os, json
     from tokenizers import Tokenizer
     from bio_tagging import spans_to_bio, bio_to_spans

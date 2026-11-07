@@ -108,7 +108,6 @@ def main():
     print(f"  best single member: {best_single:.4f}  "
           f"(gain {mpl - best_single:+.4f})")
 
-    # how decorrelated are the members, really?
     print("\n  pairwise correlation of member probabilities:")
     for i in range(len(dev_P)):
         for j in range(i + 1, len(dev_P)):

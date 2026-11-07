@@ -3,7 +3,7 @@ from prefix_lm import (PrefixModelConfig, SelfAttention, build_prefix_lm_mask,
                        suffix_loss_mask, compute_suffix_loss,
                        sample_split_indices, SPLIT_LO, SPLIT_HI)
 
-TOL = 1e-5      # bf16 needs slack; do not rely on exact equality
+TOL = 1e-5
 
 
 def test_mask():
@@ -12,8 +12,8 @@ def test_mask():
     mask = build_prefix_lm_mask(1, 8, split, "cpu")
 
     expected = torch.zeros((8, 8), dtype=torch.bool)
-    expected[:4, :4] = True                                    # prefix sees prefix
-    expected[4:, :4] = True                                    # suffix sees prefix
+    expected[:4, :4] = True
+    expected[4:, :4] = True
     expected[4:, 4:] = torch.tril(torch.ones(4, 4, dtype=torch.bool))
 
     assert torch.equal(mask[0, 0], expected), "prefix-LM mask is wrong"
@@ -52,19 +52,16 @@ def test_isolation(device, dtype):
         with torch.no_grad():
             base = attn(x, attn_mask=mask, force_manual=manual)
 
-            # A: perturb a LATE PREFIX token -> an EARLY PREFIX output must move
             xa = x.clone()
             xa[0, 3, :] = torch.randn(cfg.d_model, device=device, dtype=dtype)
             a = attn(xa, attn_mask=mask, force_manual=manual)
             d_bidir = (base[0, 1] - a[0, 1]).abs().max().item()
 
-            # B: perturb a LATE SUFFIX token -> an EARLIER SUFFIX output must not
             xb = x.clone()
             xb[0, 7, :] = torch.randn(cfg.d_model, device=device, dtype=dtype)
             b = attn(xb, attn_mask=mask, force_manual=manual)
             d_causal = (base[0, 5] - b[0, 5]).abs().max().item()
 
-            # C: perturb a SUFFIX token -> a PREFIX output must not move
             d_leak = (base[0, 1] - b[0, 1]).abs().max().item()
 
         print(f"  {label:7s} prefix bidirectional {d_bidir:.2e} | "
@@ -85,20 +82,18 @@ def test_loss_mask():
     print("  (index 3 = last prefix token, predicts the first suffix token)")
     assert got == expected, "supervised positions are misaligned"
 
-    # loss must be invariant to logits at unsupervised positions
     torch.manual_seed(0)
     logits = torch.randn(1, 8, 50)
     targets = torch.randint(0, 50, (1, 8))
     l1 = compute_suffix_loss(logits, targets, split).item()
 
     logits2 = logits.clone()
-    logits2[0, 0] = torch.randn(50)     # prefix position, unsupervised
-    logits2[0, 7] = torch.randn(50)     # last position, predicts nothing
+    logits2[0, 0] = torch.randn(50)
+    logits2[0, 7] = torch.randn(50)
     l2 = compute_suffix_loss(logits2, targets, split).item()
     print(f"  loss {l1:.6f} -> {l2:.6f} after perturbing unsupervised logits")
     assert abs(l1 - l2) < 1e-9, "unsupervised positions are contributing to the loss"
 
-    # and must change when a supervised position changes
     logits3 = logits.clone()
     logits3[0, 5] = torch.randn(50)
     l3 = compute_suffix_loss(logits3, targets, split).item()

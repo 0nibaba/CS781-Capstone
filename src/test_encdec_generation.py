@@ -1,20 +1,3 @@
-"""
-Can a span-corruption model be used for Phase 1 continuation?
-
-The model is trained to FILL a sentinel that sits mid-sequence with context on
-both sides. Phase 1 asks it to CONTINUE text — i.e. fill a sentinel at the very
-end, with no right context, and produce ~166 tokens when it was trained on
-spans of 25.
-
-Two risks, tested separately:
-  A. mechanics — does the decoder emit <sentinel> then tokens then EOS?
-  B. behaviour — does a terminal sentinel with no right context produce output
-     of useful length, or does the model stop after one span's worth?
-
-Run against the overfit model first (cheap, 2 layers). If the format fails
-here it will fail after 8 GPU hours too.
-"""
-
 import os
 import math
 import random
@@ -38,7 +21,6 @@ TEXT = ("The High Court in revision overturned the Magistrate, stating that "
 @torch.no_grad()
 def generate(model, enc_idx, max_new_tokens=200, temperature=0.0,
              device="cpu", stop_at_eos=True):
-    """Encode once, then decode autoregressively from EOS as the start token."""
     model.eval()
     enc_out = model.encode(enc_idx)
     dec = torch.tensor([[EOS_ID]], dtype=torch.long, device=device)
@@ -53,7 +35,7 @@ def generate(model, enc_idx, max_new_tokens=200, temperature=0.0,
         dec = torch.cat([dec, nxt], dim=1)
         if stop_at_eos and nxt.item() == EOS_ID:
             break
-    return dec[0, 1:].tolist()          # drop the start token
+    return dec[0, 1:].tolist()
 
 
 def train_overfit(tok, sent, device, steps=600, lr=1e-3):
@@ -92,7 +74,6 @@ def main():
     print("--- training the overfit model ---")
     model, enc_train, dt_train, ids = train_overfit(tok, sent, device)
 
-    # ---------- A. mechanics ----------
     print("\n--- A. mechanics: can it reproduce a memorised fill? ---")
     e = torch.tensor([enc_train], dtype=torch.long, device=device)
     out = generate(model, e, max_new_tokens=60, device=device)
@@ -105,7 +86,6 @@ def main():
     ends_eos = EOS_ID in out
     print(f"  emits EOS: {ends_eos}")
 
-    # ---------- B. terminal sentinel ----------
     print("\n--- B. a sentinel at the END, with no right context ---")
     print("  (the training regime never puts a sentinel last, so this is the")
     print("   regime Phase 1 would actually use)")
@@ -121,7 +101,6 @@ def main():
         print(f"\n  temperature {temp}: {n_before_eos} tokens before EOS")
         print(f"    {txt[:300]}")
 
-    # ---------- C. how long can it be pushed? ----------
     print("\n--- C. with EOS suppressed, does it keep producing text? ---")
     print("  (Phase 1 needs ~166 tokens; training spans are 25)")
     out3 = generate(model, e2, max_new_tokens=200, temperature=0.8,

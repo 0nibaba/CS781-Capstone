@@ -1,15 +1,3 @@
-"""Lead-k extractive baseline, and the local BERTScore harness.
-
-Reference summaries share 86.1% of their token types with the source document,
-so on BERTScore -- which compares contextual embeddings, not exact strings --
-simply returning the opening of the judgment is a serious competitor. This
-establishes the floor. Any trained model that does not clear it is not earning
-its keep, and reporting that honestly is the point.
-
-Length is matched to the reference distribution (median 749 tokens), because
-BERTScore F1 punishes summaries that are much shorter than the reference
-through recall.
-"""
 import os, json, argparse
 import numpy as np
 from tokenizers import Tokenizer
@@ -54,7 +42,6 @@ def main():
         ln = np.mean([len(tok.encode(c).ids) for c in cands])
         print(f"  lead-{k:<11} {ln:>6.0f} {F.mean().item():>14.4f}")
 
-    # the other trivial baseline: the whole document
     cands = [d["document"] for d in docs]
     P, R, F = scorer.score(cands, refs)
     print(f"  {'full document':<16} {'-':>6} {F.mean().item():>14.4f}")

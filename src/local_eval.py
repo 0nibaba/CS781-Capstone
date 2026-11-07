@@ -24,8 +24,6 @@ CSV_FIELDS = [
 ]
 
 
-# ---------- diagnostics ----------
-
 def distinct_ngram_ratio(text, n=4):
     w = text.split()
     if len(w) < n:
@@ -38,10 +36,7 @@ def truncate_words(text, k=128):
     return " ".join(text.split()[:k])
 
 
-# ---------- sampling ----------
-
 def apply_repetition_penalty(logits, generated, penalty):
-    """Divide logits of already-generated tokens (multiply if negative)."""
     if penalty == 1.0 or generated.numel() == 0:
         return logits
     for b in range(logits.size(0)):
@@ -52,7 +47,6 @@ def apply_repetition_penalty(logits, generated, penalty):
 
 
 def top_k_top_p_filter(logits, top_k=0, top_p=1.0):
-    """Mask logits outside the top-k / nucleus set with -inf."""
     if top_k > 0:
         kth = torch.topk(logits, top_k, dim=-1).values[..., -1, None]
         logits = logits.masked_fill(logits < kth, float("-inf"))
@@ -75,13 +69,6 @@ def top_k_top_p_filter(logits, top_k=0, top_p=1.0):
 @torch.no_grad()
 def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
              prompt_width=None, sentinel_id = None):
-    """
-    idx: (B, T) left-padded prompt token ids.
-    prompt_width: the padded width of the prompt, needed by prefix_lm so the
-                  prompt is treated as the bidirectional prefix and generated
-                  tokens extend the causal suffix — matching training, where
-                  the split sits at 0.7-0.9 of the window.
-    """
     model.eval()
     B = idx.size(0)
     out = torch.empty((B, 0), dtype=torch.long, device=device)
@@ -89,7 +76,6 @@ def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
     block = cfg["block_size"]
     is_prefix_lm = cfg.get("arch") == "prefix_lm"
 
-    # ---- encoder-decoder: encode once, then decode the sentinel fill ----
     if cfg.get("arch") == "encdec":
         enc_out = model.encode(idx, attn_mask)
         dec = torch.full((B, 1), eos_id, dtype=torch.long, device=device)
@@ -100,7 +86,6 @@ def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
                                               cfg["repetition_penalty"])
             if cfg["suppress_eos"]:
                 logits[:, eos_id] = float("-inf")
-            # the model emits the sentinel first; allow it only at step 0
             if sentinel_id is not None and out.size(1) > 0:
                 logits[:, sentinel_id] = float("-inf")
 
@@ -127,8 +112,6 @@ def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
         mask_cond = attn_mask[:, -block:] if attn_mask is not None else None
 
         if is_prefix_lm:
-            # split = how much of the current window is prompt. if the window
-            # has slid, the prefix is clamped to what remains in view.
             split = min(prompt_width, idx_cond.size(1))
             splits = torch.full((B,), split, dtype=torch.long, device=device)
             logits, _ = model(idx_cond, attn_mask=mask_cond,
@@ -143,7 +126,7 @@ def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
         if cfg["suppress_eos"] and eos_id is not None:
             logits[:, eos_id] = float("-inf")
 
-        if cfg["temperature"] <= 0:                       # greedy
+        if cfg["temperature"] <= 0:
             nxt = logits.argmax(dim=-1, keepdim=True)
         else:
             logits = logits / cfg["temperature"]
@@ -166,8 +149,6 @@ def generate(model, idx, attn_mask, max_new_tokens, cfg, eos_id, device,
     return out
 
 
-# ---------- prediction ----------
-
 def generate_predictions(model, tokenizer, eval_set, cfg, device, eos_id, sentinel_id = None):
     ids = list(eval_set.keys())
     preds, diags = {}, {}
@@ -179,7 +160,6 @@ def generate_predictions(model, tokenizer, eval_set, cfg, device, eos_id, sentin
         b_prompts = [eval_set[k]["prompt"] for k in b_ids]
 
         encs = [tokenizer.encode(p).ids for p in b_prompts]
-        # truncate from the LEFT — the end of the prompt is what matters
         limit = cfg["block_size"] - cfg["max_new_tokens"]
         encs = [e[-limit:] for e in encs]
 
@@ -190,10 +170,10 @@ def generate_predictions(model, tokenizer, eval_set, cfg, device, eos_id, sentin
         pad_id = eos_id if eos_id is not None else 0
 
         if is_encdec:
-            padded = [e + [pad_id] * (width - len(e)) for e in encs]   # RIGHT pad
+            padded = [e + [pad_id] * (width - len(e)) for e in encs]
             mask = [[1] * len(e) + [0] * (width - len(e)) for e in encs]
         else:
-            padded = [[pad_id] * (width - len(e)) + e for e in encs]   # LEFT pad
+            padded = [[pad_id] * (width - len(e)) + e for e in encs]
             mask = [[0] * (width - len(e)) + [1] * len(e) for e in encs]
 
         x = torch.tensor(padded, dtype=torch.long, device=device)
@@ -221,8 +201,6 @@ def generate_predictions(model, tokenizer, eval_set, cfg, device, eos_id, sentin
 
     return preds, diags
 
-
-# ---------- scoring ----------
 
 def evaluate(preds, eval_set, diags, scorer):
     ids = list(preds.keys())
@@ -297,8 +275,6 @@ def aggregate_and_log(rows, checkpoint, config_str, eval_set_name,  log_csv="log
             print(f"  {src:9s} {summary[k]:.4f}")
     return summary
 
-
-# ---------- entry ----------
 
 if __name__ == "__main__":
     from tokenizers import Tokenizer

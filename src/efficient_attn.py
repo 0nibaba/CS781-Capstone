@@ -1,30 +1,3 @@
-"""
-Architecture 3: local/global interleaved decoder.
-
-Most layers attend within a causal window of W tokens; a few layers attend
-over the full sequence so information still propagates globally.
-
-DESIGN NOTE — this is NOT expected to be faster, and measuring that is the
-point. Implementing a window as a boolean mask passed to SDPA still computes
-the full (T,T) score matrix and then discards most of it: zero FLOPs saved.
-Worse, an explicit attn_mask disables SDPA's FlashAttention kernel, which was
-measured at a ~21% end-to-end cost for any per-sequence 4D mask. So the
-masked implementation should be SLOWER than full causal attention despite
-attending to less.
-
-Real savings need block-sparse kernels (FlexAttention under torch.compile) or
-chunked computation. Not attempted here; reported as untested future work.
-The three attention_mode values exist so that claim can be measured rather
-than asserted.
-
-EFFECTIVE RECEPTIVE FIELD: a window of W=256 does not mean a token only ever
-sees 256 positions. Each stacked windowed layer extends the field by W, so
-after k consecutive windowed layers a token effectively sees ~k*W positions.
-With global layers at (3, 7, 11) the longest windowed run is 3 layers, giving
-an effective field of ~768 tokens before a global layer mixes everything.
-"Local" is considerably less local than the window size suggests.
-"""
-
 import math
 import torch
 import torch.nn as nn
@@ -36,9 +9,9 @@ from decoder_only_transformer import GPT, ModelConfig, RMSNorm, FeedForward
 
 @dataclass
 class EfficientModelConfig(ModelConfig):
-    window_size: int = 256          # radius: a token sees itself + W previous
+    window_size: int = 256
     global_layers: tuple = (3, 7, 11)
-    attention_mode: str = "masked"  # "masked" | "global_baseline"
+    attention_mode: str = "masked"
 
 
 def build_window_mask(T, W, device):
@@ -67,7 +40,6 @@ class WindowedSelfAttention(nn.Module):
         self.attn_dropout = nn.Dropout(config.dropout)
         self.resid_dropout = nn.Dropout(config.dropout)
 
-        # one band mask per layer, cached; sliced to T at use
         if not self.is_global and self.mode == "masked":
             self.register_buffer(
                 "window_mask",
@@ -92,7 +64,6 @@ class WindowedSelfAttention(nn.Module):
         use_full = self.is_global or self.mode == "global_baseline"
 
         if use_full and attn_mask is None and T_new == T_total:
-            # fast path: FlashAttention
             y = F.scaled_dot_product_attention(
                 q, k, v, is_causal=True,
                 dropout_p=self.dropout if self.training else 0.0)
@@ -144,8 +115,6 @@ class EfficientBlock(nn.Module):
 
 
 class EfficientGPT(GPT):
-    """Inherits forward, generate, _init_weights, configure_optimizers and
-    num_params from GPT so the arms are identical except for attention."""
 
     def __init__(self, config):
         nn.Module.__init__(self)
@@ -163,8 +132,6 @@ class EfficientGPT(GPT):
         self.lm_head.weight = self.transformer.tok_emb.weight
 
         self.apply(self._init_weights)
-        # same residual rescaling as the baseline — omitting it would be a
-        # silent initialization difference and break the matched comparison
         for pn, p in self.named_parameters():
             if pn.endswith("c_proj.weight"):
                 torch.nn.init.normal_(p, mean=0.0,

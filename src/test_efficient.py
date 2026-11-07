@@ -39,8 +39,8 @@ def test_isolation(device, dtype):
             xp[0, 1, :] = torch.randn(cfg.d_model, device=device, dtype=dtype)
             pert, _ = attn(xp, force_manual=manual)
 
-        inside = (base[0, 3] - pert[0, 3]).abs().max().item()    # 3-1 = 2 <= W
-        outside = (base[0, 5] - pert[0, 5]).abs().max().item()   # 5-1 = 4 > W
+        inside = (base[0, 3] - pert[0, 3]).abs().max().item()
+        outside = (base[0, 5] - pert[0, 5]).abs().max().item()
         print(f"  {label:7s} inside window {inside:.2e} | "
               f"outside window {outside:.2e}")
         assert inside > TOL, f"{label}: in-window token had no effect"
@@ -59,10 +59,6 @@ def test_params():
 
 
 def test_initial_loss():
-    """Compare distributions, not one value against a theoretical number.
-    Also checks whether the architectures initialize identically from the same
-    seed — EfficientGPT rebuilds its modules rather than reusing GPT.__init__,
-    so the sequence of random draws may differ."""
     print("--- 4. initial loss: efficient vs decoder, 5 seeds ---")
     ecfg, dcfg = EfficientModelConfig(), ModelConfig()
 
@@ -114,9 +110,6 @@ def test_receptive_field():
 
 
 def test_throughput(device, trials=5):
-    """Interleaved trials with a stated outlier rule. On a shared GPU the
-    baseline alone has been observed to swing 22% between consecutive
-    measurements, so single comparisons are meaningless."""
     if device != "cuda":
         print("--- 6. throughput — skipped (no cuda) ---")
         return
@@ -172,10 +165,6 @@ def test_throughput(device, trials=5):
 
 
 def test_overfit(tokenizer_path, steps=500, lr=1e-3, window=8):
-    """Catches wiring bugs in the inherited forward. The window is set small so
-    the restriction actually binds — at W=256 on an 84-token paragraph it would
-    be inert and this would test nothing. global_layers is empty so no layer
-    escapes the window."""
     from tokenizers import Tokenizer
     print(f"--- 7. overfit test (W={window}, no global layers) ---")
     device = "cuda" if torch.cuda.is_available() else "cpu"

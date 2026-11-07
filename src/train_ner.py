@@ -1,16 +1,3 @@
-"""
-Fine-tune a Phase 1 model for L-NER.
-
-Cross-validation across the two given folds: train on one, validate on the
-other, then swap. check_folds.py verified the folds are comparable (label
-ratios near 1.0 except A.COUNSEL and WIT at 1.79x) and free of cross-fold
-near-duplicates (max Jaccard 0.005), so CV here is honest — unlike the Phase 1
-eval set before contamination filtering.
-
-Model selection is on validation macro-F1, NOT loss. Phase 1 established that
-the two diverge, and macro-F1 is what is actually scored.
-"""
-
 import os
 import csv
 import json
@@ -45,7 +32,6 @@ def get_lr(step, warmup, total, max_lr, min_lr):
 
 @torch.no_grad()
 def predict(model, ds, batch_size, device, ctx, weights=None):
-    """Run the model over a fold's windows and decode to character spans."""
     model.eval()
     per_doc = {}
     losses = []
@@ -59,8 +45,6 @@ def predict(model, ds, batch_size, device, ctx, weights=None):
             losses.append(loss.item())
 
         if model.use_crf:
-            # the CRF's own decode: the best VALID sequence, not the argmax
-            # at each position independently
             paths = model.crf.viterbi(logits.float(), msk)
         else:
             argmax = logits.argmax(-1).cpu()
@@ -188,7 +172,6 @@ def run_fold(args, train_fold, val_fold, tok, device, ctx):
                 "elapsed_min": round((time.time() - t0) / 60, 2),
             })
 
-        # selection on macro-F1, not loss: Phase 1 showed they diverge
         if mf > best_f1:
             best_f1, best_epoch = mf, epoch
             torch.save({"head": model.head.state_dict(),
@@ -206,8 +189,6 @@ def run_fold(args, train_fold, val_fold, tok, device, ctx):
     return best_f1, best_epoch
 
 def train_all(args, tok, device, ctx):
-    """Train on all 70 documents. No validation — the epoch count must come
-    from a cross-validated run, since there is nothing here to select on."""
     print(f"\n{'=' * 70}")
     print(f"training on fold1 + fold2, {args.epochs} epochs (no validation)")
     print(f"{'=' * 70}")

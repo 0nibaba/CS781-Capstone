@@ -1,33 +1,3 @@
-"""
-T5-style span corruption, adapted for long spans and terminal continuation.
-
-DESIGN DECISIONS, all deliberate deviations from T5:
-
-1. MEAN SPAN 25, not T5's 3. Phase 1 asks for 128 CONSECUTIVE words, so
-   training the model to reconstruct long contiguous clauses matches the
-   evaluation better than training it to fill single-token gaps.
-
-2. TERMINAL SPANS (p_terminal). With some probability the final span runs to
-   the end of the sequence, so the model sees sentinels with NO RIGHT CONTEXT
-   during training — which is exactly the regime Phase 1 generation uses
-   (encoder gets `prompt + <X>`, decoder fills). Without this the inference
-   condition never appears in training.
-
-3. HEAVY-TAILED SPAN LENGTHS. Lengths are drawn log-normally rather than
-   normally, so a minority of spans are much longer than 25. Phase 1 needs
-   ~166 tokens from one sentinel; a model that has only ever produced 25-token
-   fills has no reason to produce 166.
-
-Decisions 2 and 3 were added after a generation test showed the inference
-format (terminal sentinel, long fill) is outside the training distribution.
-Neither can be retrofitted after training.
-
-Spans are laid out left-to-right by alternating span and gap lengths, so
-non-overlap holds BY CONSTRUCTION.
-
-<|endoftext|> (id 0) is the decoder start and EOS; sentinels are sentinels only.
-"""
-
 import random
 import math
 
@@ -35,9 +5,6 @@ EOS_ID = 0
 
 
 def _sample_lengths(n_spans, mean_span, rng, sigma=0.7):
-    """Log-normal span lengths: median ~mean_span, with a long right tail so
-    some spans are several times longer. sigma=0.7 gives roughly a 1-in-8
-    chance of a span over 2x the median."""
     mu = math.log(mean_span)
     return [max(1, int(rng.lognormvariate(mu, sigma))) for _ in range(n_spans)]
 
@@ -45,27 +12,10 @@ def _sample_lengths(n_spans, mean_span, rng, sigma=0.7):
 def corrupt_sequence(tokens, sentinel_ids, p=0.15, mean_span=25,
                      p_terminal=0.25, p_long_terminal=0.15,
                      long_span_range=(120, 200), rng=None):
-    """
-    tokens: list[int]
 
-    Three modes:
-      - standard (p ~0.60): ~6 spans of mean 25, all with right context
-      - terminal (p_terminal ~0.25): same, but the last span runs to the end
-      - long terminal (p_long_terminal ~0.15): ONE span of 120-200 tokens at
-        the end of the sequence
-
-    The long-terminal mode is a direct rehearsal of the Phase 1 task: encoder
-    gets `prompt + <X>`, decoder produces ~166 tokens. Standard span corruption
-    cannot reach that length — at p=0.15 on 1024 tokens the entire mask budget
-    is 150 tokens shared across ~6 spans, so no single span can approach 166.
-    Measured p99 under the standard scheme was 78 tokens, max 117.
-
-    Returns (enc_input, dec_input, dec_target).
-    """
     rng = rng or random
     n = len(tokens)
 
-    # ---- long terminal mode: one long span at the end ----
     if rng.random() < p_long_terminal:
         lo, hi = long_span_range
         span_len = rng.randint(lo, min(hi, max(lo, n // 3)))
@@ -74,9 +24,7 @@ def corrupt_sequence(tokens, sentinel_ids, p=0.15, mean_span=25,
             enc = tokens[:cut] + [sentinel_ids[0]]
             dec_t = [sentinel_ids[0]] + tokens[cut:] + [EOS_ID]
             return enc, [EOS_ID] + dec_t[:-1], dec_t
-        # fall through if the sequence is too short
 
-    # ---- standard / terminal modes ----
     n_mask = int(n * p)
     n_spans = max(1, min(len(sentinel_ids), round(n_mask / mean_span)))
 
@@ -115,7 +63,6 @@ def corrupt_sequence(tokens, sentinel_ids, p=0.15, mean_span=25,
 
     return enc, [EOS_ID] + dec_t[:-1], dec_t
 
-# ---------------- tests ----------------
 
 if __name__ == "__main__":
     import os
@@ -199,7 +146,7 @@ if __name__ == "__main__":
         n_s = sum(1 for x in e if x in sent)
         if n_s == 1 and e[-1] in sent:
             n_long += 1
-            lens_long.append(len(t) - 2)       # minus sentinel and EOS
+            lens_long.append(len(t) - 2)
     print(f"  {100*n_long/N:.1f}% single long terminal span "
           f"(target {100*0.15:.0f}%)")
     if lens_long:

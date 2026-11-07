@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import torch
 from tokenizers import Tokenizer
-from train import MemmapDataLoader          # whatever you named the training file
+from train import MemmapDataLoader
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -16,7 +16,6 @@ print(f"\nX shape {tuple(X.shape)}  dtype {X.dtype}")
 print(f"Y shape {tuple(Y.shape)}")
 print(f"max token id: {X.max().item()}  (must be < 32000)")
 
-# the critical check: Y is X shifted left by one
 shifted_ok = (X[:, 1:] == Y[:, :-1]).all().item()
 print(f"targets shifted by one: {shifted_ok}")
 
@@ -29,7 +28,6 @@ for i in range(4):
     n = (X[i] == eot).sum().item()
     print(f"  seq {i}: {n} separators in {X.shape[1]} tokens")
 
-# validation split must not overlap training
 print("\n--- val batch ---")
 Xv, Yv = dl.get_batch("val", batch_size=2, device="cpu")
 print(tok.decode(Xv[0][:120].tolist()))

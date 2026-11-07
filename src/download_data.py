@@ -1,13 +1,3 @@
-"""
-Download the Phase 2 L-NER data, splitting it to match the Phase 1 layout:
-
-    training_data/raw/Phase_2_LNER/Train/   fold1/fold2 text + gold, labels.txt
-    test_data/Phase_2_LNER/Test/            fold3-text.json
-
-Expects HF_TOKEN in the environment:
-    export HF_TOKEN=hf_...
-"""
-
 import os
 import shutil
 from huggingface_hub import snapshot_download
@@ -40,7 +30,6 @@ if not os.path.isdir(src):
     raise SystemExit(f"nothing downloaded at {src} — check the folder name "
                      f"on the repo page")
 
-# Train/ -> training_data, Test/ -> test_data
 for sub, dst_parent in (("Train", TRAIN_DST), ("Test", TEST_DST)):
     s = os.path.join(src, sub)
     if not os.path.isdir(s):

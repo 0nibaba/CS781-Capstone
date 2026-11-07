@@ -5,34 +5,19 @@ import torch.nn as nn
 from torch.nn import functional as F
 from dataclasses import dataclass
 
-
-# ==========================================
-# 1. Mask generation
-# ==========================================
-
 def get_doc_ids(idx, eos_id):
-    """
-    Cumulative count of EOS tokens, shifted right by one so that the EOS
-    token itself stays with the document it terminates.
-    """
     is_eos = (idx == eos_id).long()
     shifted = torch.cat([torch.zeros_like(is_eos[:, :1]), is_eos[:, :-1]], dim=1)
     return shifted.cumsum(dim=-1)
 
 
 def build_document_mask(idx, eos_id, pad_mask=None):
-    """(B, 1, T, T) bool: True where query and key share a document."""
     doc_ids = get_doc_ids(idx, eos_id)
     B, T = doc_ids.size()
     same_doc = doc_ids.view(B, 1, T, 1) == doc_ids.view(B, 1, 1, T)
     if pad_mask is not None:
         same_doc = same_doc & pad_mask.bool().view(B, 1, 1, T)
     return same_doc
-
-
-# ==========================================
-# 2. Attention
-# ==========================================
 
 @dataclass
 class ModelConfig:
@@ -68,10 +53,6 @@ class CausalSelfAttention(nn.Module):
         self.use_flash = hasattr(F, "scaled_dot_product_attention")
 
     def forward(self, x, attn_mask=None, force_manual=False, layer_cache=None):
-        """
-        attn_mask: (B, T) padding mask, or (B, 1, T, T) document mask
-                   (already folded with padding if applicable), or None.
-        """
         B, T_new, C = x.size()
 
         q, k, v = self.c_attn(x).split(self.d_model, dim=2)
@@ -106,7 +87,6 @@ class CausalSelfAttention(nn.Module):
                     q, k, v, is_causal=True,
                     dropout_p=self.dropout if self.training else 0.0)
             else:
-                # an explicit mask disables the FlashAttention kernel
                 y = F.scaled_dot_product_attention(
                     q, k, v, attn_mask=keep, is_causal=False,
                     dropout_p=self.dropout if self.training else 0.0)
@@ -120,18 +100,13 @@ class CausalSelfAttention(nn.Module):
         return self.resid_dropout(self.c_proj(y)), new_cache
 
 
-# ==========================================
-# 3. Tests
-# ==========================================
-
-TOL = 1e-5      # bf16 needs slack; exact equality is not safe across backends
+TOL = 1e-5
 
 
 def test_doc_ids():
     print("--- stage 1: document ids ---")
     eos = 2
     cases = [
-        # (tokens, expected doc_ids, description)
         ([10, 11, eos, 12, 13, eos, 14, 15],
          [0, 0, 0, 1, 1, 1, 2, 2],
          "EOS at 2 and 5"),
@@ -160,14 +135,13 @@ def test_mask():
     idx = torch.tensor([[10, 11, 12, eos, 13, 14, 15, 16]], dtype=torch.long)
 
     expected = torch.zeros((8, 8), dtype=torch.bool)
-    expected[:4, :4] = True          # doc 0 = positions 0..3 (EOS at 3 included)
-    expected[4:, 4:] = True          # doc 1 = positions 4..7
+    expected[:4, :4] = True
+    expected[4:, 4:] = True
 
     mask = build_document_mask(idx, eos)
     assert torch.equal(mask[0, 0], expected), "document mask is wrong"
     print("  same-document mask matches hand-computed matrix")
 
-    # with padding: first two positions are left-padding
     pad = torch.ones(1, 8, dtype=torch.long)
     pad[0, :2] = 0
     mask_p = build_document_mask(idx, eos, pad_mask=pad)
@@ -184,7 +158,6 @@ def test_mask():
 
 
 def test_isolation(device, dtype):
-    """Perturbing document 1 must leave every position in document 2 unchanged."""
     print(f"--- stage 3: isolation ({device}, {dtype}) ---")
     torch.manual_seed(0)
     eos = 2
@@ -215,7 +188,6 @@ def test_isolation(device, dtype):
 
 
 def test_throughput(device):
-    """Baseline is_causal vs explicit document mask, at real model scale."""
     if device != "cuda":
         print("--- stage 4: throughput — skipped (no cuda) ---")
         return

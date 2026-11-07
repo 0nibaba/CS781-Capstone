@@ -9,7 +9,6 @@ def create_sample(data_dir, out_path, budgets_mb):
     
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     
-    # Mapped to the specific pre-split files from the directory structure
     file_mapping = {
         'acts': 'train_acts.json',
         'high': 'train_high_courts.json',
@@ -66,7 +65,6 @@ def train_variants(sample_path, out_dir):
             tok.pre_tokenizer = byte_level
         tok.decoder = decoders.ByteLevel()
 
-        # fresh trainer for every tokenizer — trainers can carry state
         trainer = trainers.BpeTrainer(
             vocab_size=size,
             special_tokens=special_tokens,
@@ -91,7 +89,6 @@ if __name__ == "__main__":
     parser.add_argument("--model_out", default="checkpoints/tokenizers")
     args = parser.parse_args()
     
-    # Intended training mixture targets (in MB)
     budgets = {'acts': 100, 'supreme': 150, 'high': 50, 'tribunal': 50}
     
     if not os.path.exists(args.sample_out):

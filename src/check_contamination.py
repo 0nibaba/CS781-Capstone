@@ -1,28 +1,3 @@
-"""
-Are the eval documents near-duplicated in the training data?
-
-build_memmaps deduplicated by exact MD5 only. The ordering analysis found
-documents at jaccard ~1.0 that differ by a few characters (same matter, same
-date, slightly different record) — those pass straight through an exact-match
-filter.
-
-This matters because the local evaluator over-predicted arm B by 0.021 against
-0.003 for the decoder. If arm B is the better copier, contamination would
-inflate it more, which is the pattern observed.
-
-METHOD — neighbour search, not all-pairs. The ordering analysis established
-that near-duplicates are ADJACENT in the source files (consecutive records,
-same parties, same date). build_heldout skipped past a byte offset and sampled
-beyond it, so a held-out document's twin — if it has one — is almost certainly
-a few positions away in the same file. Checking a window of neighbours is far
-cheaper than MinHashing 4.5M documents and targets the exact mechanism that
-was measured.
-
-LIMITATION: this cannot find a duplicate that is far from its twin in file
-order. Given what the ordering analysis showed, adjacency is where they live,
-but the check is not exhaustive and is reported as such.
-"""
-
 import os
 import json
 import numpy as np
@@ -41,9 +16,9 @@ FILES = {
     "tribunal": "train_tribunals.json",
 }
 
-NEIGHBOURHOOD = 10       # documents either side of a held-out document
-SHINGLE = 5              # word n-gram size for the Jaccard estimate
-CAP = 4000               # words per document considered
+NEIGHBOURHOOD = 10
+SHINGLE = 5
+CAP = 4000
 
 
 def shingles(text, k=SHINGLE, cap=CAP):
@@ -71,13 +46,11 @@ def main():
         eval_set = json.load(f)
     print(f"eval set: {len(eval_set)} examples")
 
-    # held-out MD5s, so we can tell which documents were excluded from training
     with open(HELDOUT_HASHES) as f:
         d = json.load(f)
     heldout = {h for hs in d.values() for h in hs} if isinstance(d, dict) else set(d)
     print(f"held-out hashes: {len(heldout):,}\n")
 
-    # eval windows, grouped by their source file
     eval_by_src = defaultdict(list)
     for k, v in eval_set.items():
         eval_by_src[v.get("source", "?")].append(
@@ -93,7 +66,6 @@ def main():
         print(f"[{src}] {len(targets)} eval windows, scanning {fname}...",
               flush=True)
 
-        # rolling buffer of the last NEIGHBOURHOOD+1 documents
         buf = []
         n_heldout_found = 0
         n = 0
@@ -106,15 +78,13 @@ def main():
                 buf.pop(0)
             n += 1
 
-            # when the CENTRE of the buffer is a held-out document, compare its
-            # neighbours (which ARE in training) against every eval window
             if len(buf) == 2 * NEIGHBOURHOOD + 1:
                 centre = buf[NEIGHBOURHOOD]
                 if centre[0] in heldout:
                     n_heldout_found += 1
                     for i, (nh, ntext, ntitle) in enumerate(buf):
                         if i == NEIGHBOURHOOD or nh in heldout:
-                            continue          # skip the held-out doc itself
+                            continue
                         nsh = shingles(ntext)
                         for k, esh in targets:
                             j = jaccard(esh, nsh)
@@ -128,7 +98,6 @@ def main():
 
         print(f"  {n:,} documents, {n_heldout_found} held-out documents located\n")
 
-    # ---- report ----
     scores = {k: best[k][0] for k in eval_set}
     arr = np.array(list(scores.values()))
 

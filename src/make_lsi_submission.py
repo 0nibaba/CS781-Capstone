@@ -1,4 +1,3 @@
-"""Phase 5 submission: [{"id": ..., "pred": [int, ...]}, ...]"""
 import os, json, argparse, zipfile, datetime
 from collections import Counter
 
@@ -90,7 +89,7 @@ def main():
     empty = 0
     for i, d in enumerate(docs):
         ids_ = sorted(int(j) for j in np.where(hit[i])[0])
-        if not ids_:                       # never submit an empty set
+        if not ids_:
             ids_ = [int(prob[i].argmax())]
             empty += 1
         assert len(ids_) == len(set(ids_))

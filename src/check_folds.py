@@ -1,15 +1,3 @@
-"""
-Are fold1 and fold2 comparable enough to cross-validate across?
-
-Two risks:
-  1. If the label distributions differ sharply, CV variance would reflect the
-     split rather than the method being tested.
-  2. Phase 1 found that adjacent documents in this corpus can be near
-     duplicates. If fold1 and fold2 share material, CV would be optimistic —
-     the same mistake the Phase 1 eval set made before contamination
-     filtering.
-"""
-
 import os
 import json
 from collections import Counter
@@ -49,7 +37,6 @@ def main():
                     load(os.path.join(TRAIN, f"{f}-gold.json")))
     test = load(os.path.join(TEST, "fold3-text.json"))
 
-    # ---- label balance ----
     print("=" * 66)
     print("label counts per fold  (macro-F1 weights all 12 equally)")
     print("=" * 66)
@@ -76,7 +63,6 @@ def main():
         for lab, a, b in thin:
             print(f"    {lab:<12} fold1 {a}, fold2 {b}")
 
-    # ---- document length ----
     print("\n" + "=" * 66)
     print("document length per fold")
     print("=" * 66)
@@ -91,7 +77,6 @@ def main():
     print(f"  fold3 (test): {len(test)} docs | tokens median "
           f"{int(np.median(toks_t)):,} max {toks_t.max():,}")
 
-    # ---- near-duplicate leakage ----
     print("\n" + "=" * 66)
     print("cross-fold similarity (Phase 1 found near-duplicates in this corpus)")
     print("=" * 66)
